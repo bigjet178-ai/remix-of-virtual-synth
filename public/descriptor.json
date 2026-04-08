@@ -1,0 +1,16 @@
+{
+  "identifier": "com.virtualanalog.synth",
+  "name": "Virtual Analog Synthesizer",
+  "vendor": "AI Studio",
+  "version": "1.0.0",
+  "apiVersion": "2.0.0",
+  "description": "Photorealistic WAM 2.0 Virtual Analog Synthesizer",
+  "keywords": ["synthesizer", "virtual analog", "wam", "3d"],
+  "isInstrument": true,
+  "hasAudioInput": false,
+  "hasAudioOutput": true,
+  "hasMidiInput": true,
+  "hasMidiOutput": false,
+  "hasAutomationInput": true,
+  "hasAutomationOutput": false
+}

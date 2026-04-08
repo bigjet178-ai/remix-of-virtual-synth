@@ -1,0 +1,5 @@
+{
+  "name": "Remix: Virtual Analog Synthesizer",
+  "description": "Photorealistic WAM 2.0 Virtual Analog Synthesizer with 3D UI and custom DSP engine.",
+  "requestFramePermissions": []
+}
