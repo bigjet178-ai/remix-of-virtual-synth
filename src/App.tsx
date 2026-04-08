@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SynthHost } from './host/SynthHost';
-import { SynthPanel } from './components/SynthPanel';
-import { Power, Keyboard as KeyboardIcon, Activity, Cpu, Volume2, Settings } from 'lucide-react';
+import { Synth3D } from './gui/Synth3D';
+import { PARAMETERS } from './audio/SharedState';
+import { PRESET_CATEGORIES, Preset } from './audio/Presets';
+import { Power, Keyboard as KeyboardIcon, Activity, Cpu, Volume2, Settings, ListMusic, ChevronRight } from 'lucide-react';
 
 // PC Keyboard to MIDI Note offsets (relative to base note)
 const KEY_OFFSETS: Record<string, number> = {
@@ -19,6 +21,17 @@ function App() {
   const activeNotes = useRef<Map<string, number>>(new Map());
 
   const [isRecording, setIsRecording] = useState(false);
+  const [showPresets, setShowPresets] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+
+  const applyPreset = (preset: Preset) => {
+    if (!hostRef.current) return;
+    Object.entries(preset.params).forEach(([param, value]) => {
+      hostRef.current!.setParameter(Number(param), value);
+    });
+    setShowPresets(false);
+    setActiveCategory(null);
+  };
 
   const toggleRecording = () => {
     if (!hostRef.current) return;
@@ -113,6 +126,7 @@ function App() {
       }
 
       if (containerRef.current) {
+        new Synth3D(containerRef.current, hostRef.current);
         setBootProgress(90);
       }
       
@@ -230,6 +244,61 @@ function App() {
                 <KeyboardIcon size={14} className="text-emerald-500" />
                 <span className="uppercase tracking-wider">Keys: A-K / W-U</span>
               </div>
+              
+              <div className="relative">
+                <button 
+                  onClick={() => {
+                    setShowPresets(!showPresets);
+                    setActiveCategory(null);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 rounded-sm border border-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors bg-zinc-900/50"
+                >
+                  <ListMusic size={14} className="text-emerald-500" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest">Presets</span>
+                </button>
+                
+                {showPresets && (
+                  <div className="absolute top-full right-0 mt-2 w-56 bg-zinc-900 border border-zinc-800 rounded-sm shadow-2xl z-50 flex">
+                    <div className="flex-1 border-r border-zinc-800/50 rounded-sm overflow-hidden">
+                      <div className="px-3 py-2 border-b border-zinc-800 bg-black/50">
+                        <span className="text-[9px] text-zinc-500 uppercase tracking-widest">Categories</span>
+                      </div>
+                      <div className="flex flex-col py-1">
+                        {PRESET_CATEGORIES.map((cat, i) => (
+                          <button
+                            key={i}
+                            onMouseEnter={() => setActiveCategory(cat.category)}
+                            className={`px-3 py-2 text-left text-xs transition-colors flex items-center justify-between ${activeCategory === cat.category ? 'bg-zinc-800 text-emerald-500' : 'text-zinc-300 hover:bg-zinc-800/50'}`}
+                          >
+                            {cat.category}
+                            <ChevronRight size={12} className={activeCategory === cat.category ? 'opacity-100' : 'opacity-0'} />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {activeCategory && (
+                      <div className="w-48 bg-zinc-900 border border-zinc-800/50 absolute right-full mr-1 top-0 bottom-auto rounded-sm overflow-y-auto max-h-[300px] shadow-2xl">
+                        <div className="px-3 py-2 border-b border-zinc-800 bg-black/50 sticky top-0 z-10">
+                          <span className="text-[9px] text-zinc-500 uppercase tracking-widest">{activeCategory}</span>
+                        </div>
+                        <div className="flex flex-col py-1">
+                          {PRESET_CATEGORIES.find(c => c.category === activeCategory)?.presets.map((preset, i) => (
+                            <button
+                              key={i}
+                              onClick={() => applyPreset(preset)}
+                              className="px-3 py-2 text-left text-xs text-zinc-300 hover:bg-zinc-800 hover:text-emerald-500 transition-colors"
+                            >
+                              {preset.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               <button 
                 onClick={toggleRecording}
                 className={`flex items-center gap-2 px-4 py-2 rounded-sm border transition-all ${isRecording ? 'bg-red-500/20 border-red-500 text-red-500 animate-pulse' : 'bg-zinc-900/50 border-zinc-800 text-zinc-400 hover:text-zinc-100'}`}
@@ -317,10 +386,8 @@ function App() {
           )}
         </AnimatePresence>
 
-        {/* 2D Panel */}
-        {isReady && hostRef.current && (
-          <SynthPanel host={hostRef.current} />
-        )}
+        {/* 3D Panel */}
+        <div ref={containerRef} className="absolute inset-0 z-0" />
         
         {/* UI Overlays */}
         {isReady && (

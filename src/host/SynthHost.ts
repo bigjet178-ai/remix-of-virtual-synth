@@ -79,6 +79,14 @@ export class SynthHost {
     this.setParameter(PARAMETERS.SEQ_STEP_6, 0.0);
     this.setParameter(PARAMETERS.SEQ_STEP_7, 0.0);
 
+    this.setParameter(PARAMETERS.SUB_OSC_WAVE, 0.0);
+    this.setParameter(PARAMETERS.DPW_MIX, 0.0);
+    this.setParameter(PARAMETERS.DPW_DETUNE, 0.0);
+    this.setParameter(PARAMETERS.TS_DRIVE, 0.5);
+    this.setParameter(PARAMETERS.TS_TONE, 0.5);
+    this.setParameter(PARAMETERS.TS_LEVEL, 0.5);
+    this.setParameter(PARAMETERS.TS_MIX, 0.0);
+
     this.setParameter(PARAMETERS.MASTER_VOL, 0.7);
   }
 

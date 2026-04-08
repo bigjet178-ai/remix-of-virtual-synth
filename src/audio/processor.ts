@@ -5,6 +5,9 @@ import { Reverb } from './dsp/Reverb';
 import { ADSR } from './dsp/ADSR';
 import { LFO } from './dsp/LFO';
 import { WavetableOscillator } from './dsp/WavetableOscillator';
+import { DPWOscillator } from './dsp/DPWOscillator';
+import { LowShelfFilter } from './dsp/LowShelf';
+import { TubeScreamer } from './dsp/TubeScreamer';
 import { PARAMETERS, EVENTS, EventRingBuffer } from './SharedState';
 
 declare const sampleRate: number;
@@ -20,6 +23,7 @@ class Voice {
   public osc1UnisonR: PolyBLEPOscillator;
   public osc2: PolyBLEPOscillator;
   public subOsc: PolyBLEPOscillator;
+  public dpwOsc: DPWOscillator;
   public wtOsc: WavetableOscillator;
   public filter: ZDFLadderFilter;
   public adsr: ADSR;
@@ -35,6 +39,7 @@ class Voice {
     this.osc1UnisonR = new PolyBLEPOscillator(sampleRate);
     this.osc2 = new PolyBLEPOscillator(sampleRate);
     this.subOsc = new PolyBLEPOscillator(sampleRate);
+    this.dpwOsc = new DPWOscillator(sampleRate);
     this.wtOsc = new WavetableOscillator(sampleRate);
     this.filter = new ZDFLadderFilter(sampleRate);
     this.adsr = new ADSR(sampleRate);
@@ -100,8 +105,20 @@ class Voice {
     }
 
     // Sub Osc (1 octave down)
+    const subWave = p[PARAMETERS.SUB_OSC_WAVE] || 0;
     this.subOsc.setFrequency(this.freq * pitchMod * 0.5);
-    const subSignal = this.subOsc.processPulse(0.5) * subMix;
+    let subSignal = 0;
+    if (subWave === 0) subSignal = this.subOsc.processPulse(0.5);
+    else if (subWave === 1) subSignal = this.subOsc.processSaw();
+    else if (subWave === 2) subSignal = this.subOsc.processTriangle();
+    else subSignal = this.subOsc.processSine();
+    subSignal *= subMix;
+
+    // DPW Osc
+    const dpwMix = p[PARAMETERS.DPW_MIX] || 0;
+    const dpwDetune = p[PARAMETERS.DPW_DETUNE] || 0;
+    const dpwFreq = this.freq * Math.pow(2, dpwDetune / 12) * pitchMod;
+    const dpwSignal = this.dpwOsc.process(dpwFreq) * dpwMix;
 
     // Noise
     const noiseSignal = (Math.random() * 2 - 1) * noiseMix;
@@ -118,12 +135,12 @@ class Voice {
     this.wtOsc.setFrequency(wtFreq);
     const wtSignal = this.wtOsc.process(scrub) * wtMix;
 
-    // Report read index to a shared parameter slot (using slot 60 for visualization)
+    // Report read index to a shared parameter slot (using slot 66 for visualization)
     // Only the first active voice reports to avoid flickering if multiple voices are active,
     // or we could average them, but usually showing one is enough for UI.
-    p[60] = this.wtOsc.lastReadIndex;
+    p[66] = this.wtOsc.lastReadIndex;
 
-    const mixed = (s1 * osc1Mix + s2 * osc2Mix + unisonSignal + subSignal + noiseSignal + wtSignal) * envVal;
+    const mixed = (s1 * osc1Mix + s2 * osc2Mix + unisonSignal + subSignal + dpwSignal + noiseSignal + wtSignal) * envVal;
 
     // Filter Modulation
     const targetCutoff = p[PARAMETERS.FILTER_CUTOFF];
@@ -145,6 +162,8 @@ class SynthProcessor extends AudioWorkletProcessor {
   private maxVoices: number = 8;
   private delay: PingPongDelay;
   private reverb: Reverb;
+  private lowShelf: LowShelfFilter;
+  private tubeScreamer: TubeScreamer;
   private lfo1: LFO;
   private lfo2: LFO;
 
@@ -176,6 +195,8 @@ class SynthProcessor extends AudioWorkletProcessor {
     }
     this.delay = new PingPongDelay(sampleRate);
     this.reverb = new Reverb(sampleRate);
+    this.lowShelf = new LowShelfFilter(sampleRate);
+    this.tubeScreamer = new TubeScreamer(sampleRate);
     this.lfo1 = new LFO(sampleRate);
     this.lfo2 = new LFO(sampleRate);
 
@@ -326,8 +347,30 @@ class SynthProcessor extends AudioWorkletProcessor {
       this.delay.process(mixed);
       this.reverb.process(this.delay.outL, this.delay.outR);
       
-      const outL = this.reverb.outL * masterVol;
-      const outR = this.reverb.outR * masterVol;
+      let outL = this.reverb.outL * masterVol;
+      let outR = this.reverb.outR * masterVol;
+
+      // Low Shelf Filter
+      const lowShelfEnabled = p[PARAMETERS.LOW_SHELF_ENABLE] > 0.5;
+      if (lowShelfEnabled) {
+        const freq = p[PARAMETERS.LOW_SHELF_FREQ] || 200;
+        const gain = p[PARAMETERS.LOW_SHELF_GAIN] || 0;
+        this.lowShelf.setParameters(freq, gain);
+        outL = this.lowShelf.processL(outL);
+        outR = this.lowShelf.processR(outR);
+      }
+
+      // Tube Screamer
+      const tsMix = p[PARAMETERS.TS_MIX] || 0;
+      if (tsMix > 0) {
+        const drive = p[PARAMETERS.TS_DRIVE] || 0.5;
+        const tone = p[PARAMETERS.TS_TONE] || 0.5;
+        const level = p[PARAMETERS.TS_LEVEL] || 0.5;
+        this.tubeScreamer.setParameters(drive, tone, level);
+        const [tsL, tsR] = this.tubeScreamer.process(outL, outR);
+        outL = outL * (1 - tsMix) + tsL * tsMix;
+        outR = outR * (1 - tsMix) + tsR * tsMix;
+      }
 
       // Recording
       if (this.isRecording && this.recordPtr < this.maxRecordFrames) {

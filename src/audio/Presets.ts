@@ -1,0 +1,659 @@
+import { PARAMETERS } from './SharedState';
+
+export interface Preset {
+  name: string;
+  params: Record<number, number>;
+}
+
+export interface PresetCategory {
+  category: string;
+  presets: Preset[];
+}
+
+export const PRESET_CATEGORIES: PresetCategory[] = [
+  {
+    category: "Leads",
+    presets: [
+      {
+        name: "DPW Shredder",
+        params: {
+          [PARAMETERS.DPW_MIX]: 0.8, [PARAMETERS.DPW_DETUNE]: 0.1, [PARAMETERS.OSC1_MIX]: 0.4, [PARAMETERS.FILTER_CUTOFF]: 3000, [PARAMETERS.FILTER_RES]: 0.3, [PARAMETERS.ENV_ATTACK]: 0.01, [PARAMETERS.ENV_DECAY]: 0.4, [PARAMETERS.ENV_SUSTAIN]: 0.6, [PARAMETERS.ENV_RELEASE]: 0.3, [PARAMETERS.DELAY_MIX]: 0.3
+        }
+      },
+      {
+        name: "Wavetable Glitch",
+        params: {
+          [PARAMETERS.WT_MIX]: 1.0, [PARAMETERS.WT_POS]: 0.5, [PARAMETERS.WT_LFO_AMT]: 0.8, [PARAMETERS.LFO_RATE]: 8.0, [PARAMETERS.FILTER_CUTOFF]: 2000, [PARAMETERS.FILTER_RES]: 0.6, [PARAMETERS.ENV_ATTACK]: 0.02, [PARAMETERS.ENV_DECAY]: 0.2, [PARAMETERS.ENV_SUSTAIN]: 0.4, [PARAMETERS.ENV_RELEASE]: 0.2, [PARAMETERS.DELAY_MIX]: 0.4
+        }
+      },
+      {
+        name: "Unison Power",
+        params: {
+          [PARAMETERS.OSC1_MIX]: 0.8, [PARAMETERS.UNISON_DETUNE]: 0.4, [PARAMETERS.OSC2_MIX]: 0.6, [PARAMETERS.OSC2_DETUNE]: 0.2, [PARAMETERS.FILTER_CUTOFF]: 4000, [PARAMETERS.FILTER_RES]: 0.2, [PARAMETERS.ENV_ATTACK]: 0.05, [PARAMETERS.ENV_DECAY]: 0.5, [PARAMETERS.ENV_SUSTAIN]: 0.7, [PARAMETERS.ENV_RELEASE]: 0.4, [PARAMETERS.REVERB_MIX]: 0.4
+        }
+      },
+      {
+        name: "Sub-Heavy Lead",
+        params: {
+          [PARAMETERS.DPW_MIX]: 0.6, [PARAMETERS.SUB_OSC_MIX]: 0.8, [PARAMETERS.SUB_OSC_WAVE]: 3, [PARAMETERS.FILTER_CUTOFF]: 1200, [PARAMETERS.FILTER_RES]: 0.4, [PARAMETERS.ENV_ATTACK]: 0.02, [PARAMETERS.ENV_DECAY]: 0.6, [PARAMETERS.ENV_SUSTAIN]: 0.5, [PARAMETERS.ENV_RELEASE]: 0.4, [PARAMETERS.DELAY_MIX]: 0.2
+        }
+      },
+      {
+        name: "Acid DPW",
+        params: {
+          [PARAMETERS.DPW_MIX]: 1.0, [PARAMETERS.FILTER_CUTOFF]: 400, [PARAMETERS.FILTER_RES]: 0.8, [PARAMETERS.FILTER_ENV_DEPTH]: 4000, [PARAMETERS.FILTER_ATTACK]: 0.01, [PARAMETERS.FILTER_DECAY]: 0.3, [PARAMETERS.FILTER_SUSTAIN]: 0.1, [PARAMETERS.ENV_ATTACK]: 0.01, [PARAMETERS.ENV_DECAY]: 0.4, [PARAMETERS.ENV_SUSTAIN]: 0.2, [PARAMETERS.ENV_RELEASE]: 0.2
+        }
+      },
+      {
+        name: "Sync Lead",
+        params: {
+          [PARAMETERS.OSC1_MIX]: 0.8, [PARAMETERS.OSC2_MIX]: 0.8, [PARAMETERS.OSC2_DETUNE]: 12.1, [PARAMETERS.FILTER_CUTOFF]: 2500, [PARAMETERS.FILTER_RES]: 0.4, [PARAMETERS.FILTER_ENV_DEPTH]: 2000, [PARAMETERS.FILTER_ATTACK]: 0.05, [PARAMETERS.FILTER_DECAY]: 0.4, [PARAMETERS.ENV_ATTACK]: 0.02, [PARAMETERS.ENV_DECAY]: 0.5, [PARAMETERS.ENV_SUSTAIN]: 0.6, [PARAMETERS.ENV_RELEASE]: 0.3
+        }
+      },
+      {
+        name: "Digital Flute",
+        params: {
+          [PARAMETERS.WT_MIX]: 0.8, [PARAMETERS.WT_POS]: 0.2, [PARAMETERS.NOISE_MIX]: 0.15, [PARAMETERS.FILTER_CUTOFF]: 1500, [PARAMETERS.FILTER_RES]: 0.1, [PARAMETERS.ENV_ATTACK]: 0.1, [PARAMETERS.ENV_DECAY]: 0.4, [PARAMETERS.ENV_SUSTAIN]: 0.8, [PARAMETERS.ENV_RELEASE]: 0.4, [PARAMETERS.REVERB_MIX]: 0.4
+        }
+      },
+      {
+        name: "DPW Pulse",
+        params: {
+          [PARAMETERS.DPW_MIX]: 0.7, [PARAMETERS.DPW_DETUNE]: 0.05, [PARAMETERS.OSC1_WAVE]: 1, [PARAMETERS.OSC1_MIX]: 0.5, [PARAMETERS.FILTER_CUTOFF]: 3500, [PARAMETERS.FILTER_RES]: 0.2, [PARAMETERS.ENV_ATTACK]: 0.01, [PARAMETERS.ENV_DECAY]: 0.3, [PARAMETERS.ENV_SUSTAIN]: 0.7, [PARAMETERS.ENV_RELEASE]: 0.3
+        }
+      },
+      {
+        name: "Sequenced Lead",
+        params: {
+          [PARAMETERS.SEQ_ENABLE]: 1, [PARAMETERS.SEQ_TEMPO]: 120, [PARAMETERS.DPW_MIX]: 0.8, [PARAMETERS.FILTER_CUTOFF]: 2000, [PARAMETERS.FILTER_RES]: 0.5, [PARAMETERS.SEQ_STEP_0]: 0, [PARAMETERS.SEQ_STEP_1]: 3, [PARAMETERS.SEQ_STEP_2]: 7, [PARAMETERS.SEQ_STEP_3]: 10, [PARAMETERS.SEQ_STEP_4]: 12, [PARAMETERS.SEQ_STEP_5]: 7, [PARAMETERS.SEQ_STEP_6]: 3, [PARAMETERS.SEQ_STEP_7]: 0
+        }
+      },
+      {
+        name: "Low Shelf Lead",
+        params: {
+          [PARAMETERS.OSC1_MIX]: 0.9, [PARAMETERS.LOW_SHELF_ENABLE]: 1, [PARAMETERS.LOW_SHELF_FREQ]: 250, [PARAMETERS.LOW_SHELF_GAIN]: 12, [PARAMETERS.FILTER_CUTOFF]: 2500, [PARAMETERS.FILTER_RES]: 0.2, [PARAMETERS.ENV_ATTACK]: 0.05, [PARAMETERS.ENV_DECAY]: 0.5, [PARAMETERS.ENV_SUSTAIN]: 0.6, [PARAMETERS.ENV_RELEASE]: 0.4
+        }
+      },
+      {
+        name: "LFO Scream",
+        params: {
+          [PARAMETERS.DPW_MIX]: 0.9, [PARAMETERS.FILTER_CUTOFF]: 1000, [PARAMETERS.FILTER_RES]: 0.7, [PARAMETERS.FILTER_LFO_AMT]: 3000, [PARAMETERS.LFO_RATE]: 12.0, [PARAMETERS.ENV_ATTACK]: 0.02, [PARAMETERS.ENV_DECAY]: 0.6, [PARAMETERS.ENV_SUSTAIN]: 0.8, [PARAMETERS.ENV_RELEASE]: 0.4
+        }
+      },
+      {
+        name: "Crystal Lead",
+        params: {
+          [PARAMETERS.WT_MIX]: 0.9, [PARAMETERS.WT_DETUNE]: 12, [PARAMETERS.WT_POS]: 0.4, [PARAMETERS.FILTER_CUTOFF]: 5000, [PARAMETERS.FILTER_RES]: 0.1, [PARAMETERS.ENV_ATTACK]: 0.01, [PARAMETERS.ENV_DECAY]: 0.8, [PARAMETERS.ENV_SUSTAIN]: 0.4, [PARAMETERS.ENV_RELEASE]: 1.5, [PARAMETERS.REVERB_MIX]: 0.5
+        }
+      }
+    ]
+  },
+  {
+    category: "Pads",
+    presets: [
+      {
+        name: "Ethereal DPW",
+        params: {
+          [PARAMETERS.DPW_MIX]: 0.7, [PARAMETERS.DPW_DETUNE]: 0.2, [PARAMETERS.ENV_ATTACK]: 2.0, [PARAMETERS.ENV_DECAY]: 2.0, [PARAMETERS.ENV_SUSTAIN]: 0.9, [PARAMETERS.ENV_RELEASE]: 3.0, [PARAMETERS.FILTER_CUTOFF]: 1200, [PARAMETERS.FILTER_RES]: 0.2, [PARAMETERS.REVERB_MIX]: 0.6, [PARAMETERS.REVERB_DECAY]: 0.9
+        }
+      },
+      {
+        name: "Wavetable Clouds",
+        params: {
+          [PARAMETERS.WT_MIX]: 0.9, [PARAMETERS.WT_POS]: 0.5, [PARAMETERS.WT_LFO_AMT]: 0.4, [PARAMETERS.LFO_RATE]: 0.2, [PARAMETERS.UNISON_DETUNE]: 0.3, [PARAMETERS.ENV_ATTACK]: 2.5, [PARAMETERS.ENV_DECAY]: 3.0, [PARAMETERS.ENV_SUSTAIN]: 1.0, [PARAMETERS.ENV_RELEASE]: 4.0, [PARAMETERS.REVERB_MIX]: 0.5
+        }
+      },
+      {
+        name: "Submerged Pad",
+        params: {
+          [PARAMETERS.LOW_SHELF_ENABLE]: 1, [PARAMETERS.LOW_SHELF_FREQ]: 150, [PARAMETERS.LOW_SHELF_GAIN]: 10, [PARAMETERS.FILTER_CUTOFF]: 400, [PARAMETERS.FILTER_RES]: 0.4, [PARAMETERS.NOISE_MIX]: 0.1, [PARAMETERS.ENV_ATTACK]: 1.5, [PARAMETERS.ENV_DECAY]: 2.0, [PARAMETERS.ENV_SUSTAIN]: 0.8, [PARAMETERS.ENV_RELEASE]: 2.5
+        }
+      },
+      {
+        name: "Unison Dream",
+        params: {
+          [PARAMETERS.OSC1_MIX]: 0.8, [PARAMETERS.UNISON_DETUNE]: 0.8, [PARAMETERS.ENV_ATTACK]: 3.0, [PARAMETERS.ENV_DECAY]: 2.0, [PARAMETERS.ENV_SUSTAIN]: 1.0, [PARAMETERS.ENV_RELEASE]: 5.0, [PARAMETERS.REVERB_MIX]: 0.7, [PARAMETERS.DELAY_MIX]: 0.4
+        }
+      },
+      {
+        name: "DPW Texture",
+        params: {
+          [PARAMETERS.DPW_MIX]: 0.6, [PARAMETERS.DPW_DETUNE]: 0.5, [PARAMETERS.WT_MIX]: 0.5, [PARAMETERS.FILTER_CUTOFF]: 800, [PARAMETERS.FILTER_LFO_AMT]: 400, [PARAMETERS.LFO_RATE]: 0.1, [PARAMETERS.ENV_ATTACK]: 2.0, [PARAMETERS.ENV_RELEASE]: 3.0
+        }
+      },
+      {
+        name: "Resonant Pad",
+        params: {
+          [PARAMETERS.OSC1_MIX]: 0.7, [PARAMETERS.FILTER_CUTOFF]: 1500, [PARAMETERS.FILTER_RES]: 0.7, [PARAMETERS.FILTER_LFO_AMT]: 1000, [PARAMETERS.LFO_RATE]: 0.3, [PARAMETERS.ENV_ATTACK]: 1.5, [PARAMETERS.ENV_RELEASE]: 2.5, [PARAMETERS.REVERB_MIX]: 0.4
+        }
+      },
+      {
+        name: "Sub Pad",
+        params: {
+          [PARAMETERS.SUB_OSC_MIX]: 0.7, [PARAMETERS.SUB_OSC_WAVE]: 2, [PARAMETERS.OSC1_MIX]: 0.5, [PARAMETERS.FILTER_CUTOFF]: 600, [PARAMETERS.ENV_ATTACK]: 1.0, [PARAMETERS.ENV_RELEASE]: 2.0, [PARAMETERS.REVERB_MIX]: 0.3
+        }
+      },
+      {
+        name: "Glacial WT",
+        params: {
+          [PARAMETERS.WT_MIX]: 1.0, [PARAMETERS.WT_POS]: 0.8, [PARAMETERS.ENV_ATTACK]: 4.0, [PARAMETERS.ENV_RELEASE]: 6.0, [PARAMETERS.REVERB_MIX]: 0.8, [PARAMETERS.REVERB_DECAY]: 0.95
+        }
+      },
+      {
+        name: "Shimmer Pad",
+        params: {
+          [PARAMETERS.OSC1_MIX]: 0.6, [PARAMETERS.OSC2_MIX]: 0.5, [PARAMETERS.OSC2_DETUNE]: 12.05, [PARAMETERS.ENV_ATTACK]: 2.0, [PARAMETERS.ENV_RELEASE]: 3.0, [PARAMETERS.REVERB_MIX]: 0.6, [PARAMETERS.DELAY_MIX]: 0.3
+        }
+      },
+      {
+        name: "Low Shelf Warmth",
+        params: {
+          [PARAMETERS.LOW_SHELF_ENABLE]: 1, [PARAMETERS.LOW_SHELF_FREQ]: 200, [PARAMETERS.LOW_SHELF_GAIN]: 8, [PARAMETERS.OSC1_MIX]: 0.8, [PARAMETERS.FILTER_CUTOFF]: 1000, [PARAMETERS.ENV_ATTACK]: 1.5, [PARAMETERS.ENV_RELEASE]: 2.0
+        }
+      },
+      {
+        name: "LFO Swell",
+        params: {
+          [PARAMETERS.OSC1_MIX]: 0.8, [PARAMETERS.FILTER_CUTOFF]: 2000, [PARAMETERS.FILTER_LFO_AMT]: 1500, [PARAMETERS.LFO_RATE]: 0.2, [PARAMETERS.ENV_ATTACK]: 2.0, [PARAMETERS.ENV_RELEASE]: 3.0, [PARAMETERS.REVERB_MIX]: 0.4
+        }
+      },
+      {
+        name: "Starlight Pad",
+        params: {
+          [PARAMETERS.WT_MIX]: 0.7, [PARAMETERS.WT_DETUNE]: 24, [PARAMETERS.FILTER_CUTOFF]: 4000, [PARAMETERS.ENV_ATTACK]: 2.5, [PARAMETERS.ENV_RELEASE]: 4.0, [PARAMETERS.DELAY_MIX]: 0.5, [PARAMETERS.REVERB_MIX]: 0.5
+        }
+      }
+    ]
+  },
+  {
+    category: "Basses",
+    presets: [
+      {
+        name: "DPW Growl",
+        params: {
+          [PARAMETERS.DPW_MIX]: 1.0, [PARAMETERS.SUB_OSC_MIX]: 0.8, [PARAMETERS.FILTER_CUTOFF]: 200, [PARAMETERS.FILTER_RES]: 0.6, [PARAMETERS.FILTER_ENV_DEPTH]: 3000, [PARAMETERS.FILTER_ATTACK]: 0.01, [PARAMETERS.FILTER_DECAY]: 0.4, [PARAMETERS.ENV_ATTACK]: 0.01, [PARAMETERS.ENV_DECAY]: 0.6, [PARAMETERS.ENV_SUSTAIN]: 0.4, [PARAMETERS.ENV_RELEASE]: 0.3
+        }
+      },
+      {
+        name: "Sub Saw Bass",
+        params: {
+          [PARAMETERS.SUB_OSC_MIX]: 1.0, [PARAMETERS.SUB_OSC_WAVE]: 1, [PARAMETERS.FILTER_CUTOFF]: 300, [PARAMETERS.FILTER_RES]: 0.2, [PARAMETERS.ENV_ATTACK]: 0.05, [PARAMETERS.ENV_DECAY]: 0.5, [PARAMETERS.ENV_SUSTAIN]: 0.8, [PARAMETERS.ENV_RELEASE]: 0.4
+        }
+      },
+      {
+        name: "Wavetable Bass",
+        params: {
+          [PARAMETERS.WT_MIX]: 1.0, [PARAMETERS.WT_POS]: 0.1, [PARAMETERS.FILTER_CUTOFF]: 500, [PARAMETERS.FILTER_RES]: 0.4, [PARAMETERS.FILTER_ENV_DEPTH]: 2000, [PARAMETERS.FILTER_ATTACK]: 0.01, [PARAMETERS.FILTER_DECAY]: 0.3, [PARAMETERS.ENV_ATTACK]: 0.01, [PARAMETERS.ENV_DECAY]: 0.5, [PARAMETERS.ENV_SUSTAIN]: 0.2
+        }
+      },
+      {
+        name: "Unison Bass",
+        params: {
+          [PARAMETERS.OSC1_MIX]: 0.9, [PARAMETERS.UNISON_DETUNE]: 0.15, [PARAMETERS.SUB_OSC_MIX]: 0.7, [PARAMETERS.FILTER_CUTOFF]: 400, [PARAMETERS.FILTER_RES]: 0.3, [PARAMETERS.ENV_ATTACK]: 0.05, [PARAMETERS.ENV_DECAY]: 0.6, [PARAMETERS.ENV_SUSTAIN]: 0.6
+        }
+      },
+      {
+        name: "Acid Seq",
+        params: {
+          [PARAMETERS.SEQ_ENABLE]: 1, [PARAMETERS.SEQ_TEMPO]: 125, [PARAMETERS.DPW_MIX]: 1.0, [PARAMETERS.FILTER_CUTOFF]: 200, [PARAMETERS.FILTER_RES]: 0.8, [PARAMETERS.FILTER_ENV_DEPTH]: 4000, [PARAMETERS.SEQ_STEP_0]: 0, [PARAMETERS.SEQ_STEP_1]: 0, [PARAMETERS.SEQ_STEP_2]: 12, [PARAMETERS.SEQ_STEP_3]: 0, [PARAMETERS.SEQ_STEP_4]: 7, [PARAMETERS.SEQ_STEP_5]: 0, [PARAMETERS.SEQ_STEP_6]: 3, [PARAMETERS.SEQ_STEP_7]: 0
+        }
+      },
+      {
+        name: "Low Shelf Punch",
+        params: {
+          [PARAMETERS.LOW_SHELF_ENABLE]: 1, [PARAMETERS.LOW_SHELF_FREQ]: 80, [PARAMETERS.LOW_SHELF_GAIN]: 15, [PARAMETERS.SUB_OSC_MIX]: 1.0, [PARAMETERS.SUB_OSC_WAVE]: 3, [PARAMETERS.FILTER_CUTOFF]: 150, [PARAMETERS.ENV_ATTACK]: 0.01, [PARAMETERS.ENV_DECAY]: 0.4, [PARAMETERS.ENV_SUSTAIN]: 0.2
+        }
+      },
+      {
+        name: "DPW Detune Bass",
+        params: {
+          [PARAMETERS.DPW_MIX]: 0.8, [PARAMETERS.DPW_DETUNE]: 0.3, [PARAMETERS.SUB_OSC_MIX]: 0.6, [PARAMETERS.FILTER_CUTOFF]: 600, [PARAMETERS.FILTER_RES]: 0.2, [PARAMETERS.ENV_ATTACK]: 0.05, [PARAMETERS.ENV_DECAY]: 0.8
+        }
+      },
+      {
+        name: "Dirty Sub",
+        params: {
+          [PARAMETERS.SUB_OSC_MIX]: 1.0, [PARAMETERS.SUB_OSC_WAVE]: 0, [PARAMETERS.NOISE_MIX]: 0.2, [PARAMETERS.FILTER_CUTOFF]: 200, [PARAMETERS.FILTER_RES]: 0.5, [PARAMETERS.ENV_ATTACK]: 0.02, [PARAMETERS.ENV_DECAY]: 0.6
+        }
+      },
+      {
+        name: "WT Growler",
+        params: {
+          [PARAMETERS.WT_MIX]: 1.0, [PARAMETERS.WT_POS]: 0.0, [PARAMETERS.WT_LFO_AMT]: 0.5, [PARAMETERS.LFO_RATE]: 0.5, [PARAMETERS.FILTER_CUTOFF]: 400, [PARAMETERS.FILTER_RES]: 0.6, [PARAMETERS.ENV_ATTACK]: 0.01, [PARAMETERS.ENV_DECAY]: 0.5
+        }
+      },
+      {
+        name: "Solid DPW",
+        params: {
+          [PARAMETERS.DPW_MIX]: 1.0, [PARAMETERS.SUB_OSC_MIX]: 0.5, [PARAMETERS.SUB_OSC_WAVE]: 3, [PARAMETERS.FILTER_CUTOFF]: 800, [PARAMETERS.FILTER_RES]: 0.1, [PARAMETERS.ENV_ATTACK]: 0.01, [PARAMETERS.ENV_DECAY]: 0.4
+        }
+      },
+      {
+        name: "Hollow Bass",
+        params: {
+          [PARAMETERS.OSC1_WAVE]: 1, [PARAMETERS.OSC1_MIX]: 0.9, [PARAMETERS.SUB_OSC_MIX]: 0.8, [PARAMETERS.SUB_OSC_WAVE]: 2, [PARAMETERS.FILTER_CUTOFF]: 500, [PARAMETERS.FILTER_RES]: 0.4, [PARAMETERS.ENV_ATTACK]: 0.05, [PARAMETERS.ENV_DECAY]: 0.6
+        }
+      },
+      {
+        name: "Resonant Bass",
+        params: {
+          [PARAMETERS.DPW_MIX]: 0.8, [PARAMETERS.FILTER_CUTOFF]: 300, [PARAMETERS.FILTER_RES]: 0.9, [PARAMETERS.FILTER_ENV_DEPTH]: 3500, [PARAMETERS.FILTER_ATTACK]: 0.01, [PARAMETERS.FILTER_DECAY]: 0.3, [PARAMETERS.ENV_ATTACK]: 0.01, [PARAMETERS.ENV_DECAY]: 0.5
+        }
+      },
+      {
+        name: "Deep DPW",
+        params: {
+          [PARAMETERS.DPW_MIX]: 0.9, [PARAMETERS.DPW_DETUNE]: 0.1, [PARAMETERS.LOW_SHELF_ENABLE]: 1, [PARAMETERS.LOW_SHELF_FREQ]: 100, [PARAMETERS.LOW_SHELF_GAIN]: 12, [PARAMETERS.FILTER_CUTOFF]: 200, [PARAMETERS.ENV_ATTACK]: 0.1, [PARAMETERS.ENV_DECAY]: 1.0
+        }
+      }
+    ]
+  },
+  {
+    category: "FX & Textures",
+    presets: [
+      {
+        name: "DPW Noise",
+        params: {
+          [PARAMETERS.DPW_MIX]: 1.0, [PARAMETERS.DPW_DETUNE]: 12.0, [PARAMETERS.NOISE_MIX]: 0.8, [PARAMETERS.FILTER_CUTOFF]: 2000, [PARAMETERS.FILTER_RES]: 0.5, [PARAMETERS.DELAY_MIX]: 0.6, [PARAMETERS.DELAY_FEEDBACK]: 0.8, [PARAMETERS.ENV_ATTACK]: 0.1, [PARAMETERS.ENV_RELEASE]: 1.0
+        }
+      },
+      {
+        name: "Wavetable Glitch",
+        params: {
+          [PARAMETERS.WT_MIX]: 1.0, [PARAMETERS.WT_POS]: 0.5, [PARAMETERS.WT_LFO_AMT]: 0.9, [PARAMETERS.LFO_RATE]: 15.0, [PARAMETERS.DELAY_MIX]: 0.5, [PARAMETERS.DELAY_TIME]: 0.1, [PARAMETERS.ENV_ATTACK]: 0.01, [PARAMETERS.ENV_RELEASE]: 0.5
+        }
+      },
+      {
+        name: "Seq Chaos",
+        params: {
+          [PARAMETERS.SEQ_ENABLE]: 1, [PARAMETERS.SEQ_TEMPO]: 180, [PARAMETERS.DPW_MIX]: 0.7, [PARAMETERS.REVERB_MIX]: 0.8, [PARAMETERS.REVERB_DECAY]: 0.95, [PARAMETERS.SEQ_STEP_0]: 12, [PARAMETERS.SEQ_STEP_1]: -12, [PARAMETERS.SEQ_STEP_2]: 7, [PARAMETERS.SEQ_STEP_3]: -5, [PARAMETERS.SEQ_STEP_4]: 3, [PARAMETERS.SEQ_STEP_5]: 0, [PARAMETERS.SEQ_STEP_6]: 10, [PARAMETERS.SEQ_STEP_7]: -7
+        }
+      },
+      {
+        name: "Low Shelf Rumble",
+        params: {
+          [PARAMETERS.LOW_SHELF_ENABLE]: 1, [PARAMETERS.LOW_SHELF_FREQ]: 40, [PARAMETERS.LOW_SHELF_GAIN]: 24, [PARAMETERS.NOISE_MIX]: 1.0, [PARAMETERS.FILTER_CUTOFF]: 100, [PARAMETERS.ENV_ATTACK]: 1.0, [PARAMETERS.ENV_RELEASE]: 2.0
+        }
+      },
+      {
+        name: "Unison Swarm",
+        params: {
+          [PARAMETERS.OSC1_MIX]: 0.8, [PARAMETERS.UNISON_DETUNE]: 1.0, [PARAMETERS.FILTER_CUTOFF]: 1000, [PARAMETERS.FILTER_LFO_AMT]: 2000, [PARAMETERS.LFO_RATE]: 0.5, [PARAMETERS.REVERB_MIX]: 0.6, [PARAMETERS.ENV_ATTACK]: 2.0, [PARAMETERS.ENV_RELEASE]: 3.0
+        }
+      },
+      {
+        name: "DPW Riser",
+        params: {
+          [PARAMETERS.DPW_MIX]: 0.8, [PARAMETERS.DPW_DETUNE]: 0, [PARAMETERS.FILTER_CUTOFF]: 100, [PARAMETERS.FILTER_ENV_DEPTH]: 10000, [PARAMETERS.FILTER_ATTACK]: 4.0, [PARAMETERS.ENV_ATTACK]: 4.0, [PARAMETERS.ENV_RELEASE]: 1.0, [PARAMETERS.DELAY_MIX]: 0.4
+        }
+      },
+      {
+        name: "Digital Rain",
+        params: {
+          [PARAMETERS.WT_MIX]: 0.9, [PARAMETERS.WT_POS]: 0.3, [PARAMETERS.LFO_RATE]: 10.0, [PARAMETERS.WT_LFO_AMT]: 0.8, [PARAMETERS.DELAY_MIX]: 0.6, [PARAMETERS.DELAY_TIME]: 0.2, [PARAMETERS.ENV_ATTACK]: 0.01, [PARAMETERS.ENV_RELEASE]: 0.2
+        }
+      },
+      {
+        name: "Sub Drone",
+        params: {
+          [PARAMETERS.SUB_OSC_MIX]: 1.0, [PARAMETERS.SUB_OSC_WAVE]: 3, [PARAMETERS.LOW_SHELF_ENABLE]: 1, [PARAMETERS.LOW_SHELF_FREQ]: 60, [PARAMETERS.LOW_SHELF_GAIN]: 12, [PARAMETERS.REVERB_MIX]: 0.5, [PARAMETERS.ENV_ATTACK]: 2.0, [PARAMETERS.ENV_RELEASE]: 4.0
+        }
+      },
+      {
+        name: "Alien Texture",
+        params: {
+          [PARAMETERS.WT_MIX]: 0.8, [PARAMETERS.WT_POS]: 0.7, [PARAMETERS.FILTER_LFO_AMT]: 3000, [PARAMETERS.LFO_RATE]: 0.2, [PARAMETERS.DELAY_MIX]: 0.5, [PARAMETERS.ENV_ATTACK]: 1.5, [PARAMETERS.ENV_RELEASE]: 2.5
+        }
+      },
+      {
+        name: "DPW Feedback",
+        params: {
+          [PARAMETERS.DPW_MIX]: 0.9, [PARAMETERS.DELAY_MIX]: 0.7, [PARAMETERS.DELAY_FEEDBACK]: 0.95, [PARAMETERS.DELAY_TIME]: 0.3, [PARAMETERS.ENV_ATTACK]: 0.05, [PARAMETERS.ENV_RELEASE]: 0.5
+        }
+      },
+      {
+        name: "Static Clouds",
+        params: {
+          [PARAMETERS.NOISE_MIX]: 1.0, [PARAMETERS.REVERB_MIX]: 0.8, [PARAMETERS.REVERB_DECAY]: 0.9, [PARAMETERS.LOW_SHELF_ENABLE]: 1, [PARAMETERS.LOW_SHELF_FREQ]: 200, [PARAMETERS.LOW_SHELF_GAIN]: 10, [PARAMETERS.ENV_ATTACK]: 2.0, [PARAMETERS.ENV_RELEASE]: 3.0
+        }
+      },
+      {
+        name: "Warped WT",
+        params: {
+          [PARAMETERS.WT_MIX]: 1.0, [PARAMETERS.WT_DETUNE]: 0, [PARAMETERS.LFO2_RATE]: 0.5, [PARAMETERS.LFO2_AMT]: 0.8, [PARAMETERS.REVERB_MIX]: 0.4, [PARAMETERS.ENV_ATTACK]: 1.0, [PARAMETERS.ENV_RELEASE]: 2.0
+        }
+      },
+      {
+        name: "Final Frontier",
+        params: {
+          [PARAMETERS.DPW_MIX]: 0.5, [PARAMETERS.REVERB_MIX]: 1.0, [PARAMETERS.REVERB_DECAY]: 0.99, [PARAMETERS.DELAY_MIX]: 0.8, [PARAMETERS.DELAY_FEEDBACK]: 0.9, [PARAMETERS.ENV_ATTACK]: 3.0, [PARAMETERS.ENV_RELEASE]: 5.0
+        }
+      }
+    ]
+  },
+  {
+    category: "Plucks",
+    presets: [
+      {
+        name: "DPW Pluck",
+        params: {
+          [PARAMETERS.DPW_MIX]: 0.8, [PARAMETERS.FILTER_CUTOFF]: 800, [PARAMETERS.FILTER_RES]: 0.4, [PARAMETERS.FILTER_ENV_DEPTH]: 4000, [PARAMETERS.FILTER_DECAY]: 0.1, [PARAMETERS.ENV_ATTACK]: 0.01, [PARAMETERS.ENV_DECAY]: 0.2, [PARAMETERS.ENV_SUSTAIN]: 0.0
+        }
+      },
+      {
+        name: "Wavetable Harp",
+        params: {
+          [PARAMETERS.WT_MIX]: 0.9, [PARAMETERS.WT_POS]: 0.3, [PARAMETERS.ENV_ATTACK]: 0.01, [PARAMETERS.ENV_DECAY]: 0.8, [PARAMETERS.ENV_SUSTAIN]: 0.0, [PARAMETERS.REVERB_MIX]: 0.4
+        }
+      },
+      {
+        name: "Short Unison",
+        params: {
+          [PARAMETERS.OSC1_MIX]: 0.7, [PARAMETERS.UNISON_DETUNE]: 0.3, [PARAMETERS.FILTER_CUTOFF]: 2000, [PARAMETERS.FILTER_ENV_DEPTH]: 3000, [PARAMETERS.FILTER_DECAY]: 0.15, [PARAMETERS.ENV_DECAY]: 0.3, [PARAMETERS.ENV_SUSTAIN]: 0.0
+        }
+      },
+      {
+        name: "Digital Banjo",
+        params: {
+          [PARAMETERS.WT_MIX]: 1.0, [PARAMETERS.WT_POS]: 0.1, [PARAMETERS.FILTER_CUTOFF]: 3000, [PARAMETERS.FILTER_RES]: 0.6, [PARAMETERS.ENV_DECAY]: 0.1, [PARAMETERS.ENV_SUSTAIN]: 0.0
+        }
+      },
+      {
+        name: "Sub Pluck",
+        params: {
+          [PARAMETERS.SUB_OSC_MIX]: 0.8, [PARAMETERS.FILTER_CUTOFF]: 400, [PARAMETERS.FILTER_ENV_DEPTH]: 2000, [PARAMETERS.FILTER_DECAY]: 0.1, [PARAMETERS.ENV_DECAY]: 0.2, [PARAMETERS.ENV_SUSTAIN]: 0.0
+        }
+      },
+      {
+        name: "Noise Perc",
+        params: {
+          [PARAMETERS.NOISE_MIX]: 0.9, [PARAMETERS.FILTER_CUTOFF]: 5000, [PARAMETERS.FILTER_RES]: 0.8, [PARAMETERS.ENV_DECAY]: 0.05, [PARAMETERS.ENV_SUSTAIN]: 0.0
+        }
+      },
+      {
+        name: "DPW Snap",
+        params: {
+          [PARAMETERS.DPW_MIX]: 1.0, [PARAMETERS.DPW_DETUNE]: 0.1, [PARAMETERS.FILTER_CUTOFF]: 1500, [PARAMETERS.FILTER_ENV_DEPTH]: 5000, [PARAMETERS.FILTER_DECAY]: 0.05, [PARAMETERS.ENV_DECAY]: 0.1, [PARAMETERS.ENV_SUSTAIN]: 0.0
+        }
+      },
+      {
+        name: "Glass Pluck",
+        params: {
+          [PARAMETERS.WT_MIX]: 0.7, [PARAMETERS.WT_DETUNE]: 12, [PARAMETERS.FILTER_CUTOFF]: 4000, [PARAMETERS.ENV_DECAY]: 0.4, [PARAMETERS.REVERB_MIX]: 0.3
+        }
+      },
+      {
+        name: "Reso Snap",
+        params: {
+          [PARAMETERS.FILTER_CUTOFF]: 200, [PARAMETERS.FILTER_RES]: 0.95, [PARAMETERS.FILTER_ENV_DEPTH]: 8000, [PARAMETERS.FILTER_DECAY]: 0.05, [PARAMETERS.ENV_DECAY]: 0.1
+        }
+      },
+      {
+        name: "Echo Pluck",
+        params: {
+          [PARAMETERS.OSC1_MIX]: 0.6, [PARAMETERS.FILTER_CUTOFF]: 2500, [PARAMETERS.ENV_DECAY]: 0.2, [PARAMETERS.DELAY_MIX]: 0.5, [PARAMETERS.DELAY_TIME]: 0.25
+        }
+      }
+    ]
+  },
+  {
+    category: "Keys",
+    presets: [
+      {
+        name: "DPW EPiano",
+        params: {
+          [PARAMETERS.DPW_MIX]: 0.5, [PARAMETERS.OSC1_WAVE]: 1, [PARAMETERS.OSC1_MIX]: 0.3, [PARAMETERS.FILTER_CUTOFF]: 1200, [PARAMETERS.ENV_ATTACK]: 0.01, [PARAMETERS.ENV_DECAY]: 1.5, [PARAMETERS.ENV_SUSTAIN]: 0.0, [PARAMETERS.REVERB_MIX]: 0.3
+        }
+      },
+      {
+        name: "Wavetable Tines",
+        params: {
+          [PARAMETERS.WT_MIX]: 0.8, [PARAMETERS.WT_POS]: 0.4, [PARAMETERS.ENV_ATTACK]: 0.01, [PARAMETERS.ENV_DECAY]: 2.0, [PARAMETERS.ENV_SUSTAIN]: 0.0, [PARAMETERS.DELAY_MIX]: 0.2
+        }
+      },
+      {
+        name: "Digital Organ",
+        params: {
+          [PARAMETERS.OSC1_MIX]: 0.6, [PARAMETERS.OSC2_MIX]: 0.4, [PARAMETERS.OSC2_DETUNE]: 12, [PARAMETERS.FILTER_CUTOFF]: 3000, [PARAMETERS.ENV_ATTACK]: 0.05, [PARAMETERS.ENV_SUSTAIN]: 0.8, [PARAMETERS.ENV_RELEASE]: 0.2
+        }
+      },
+      {
+        name: "Soft DPW Keys",
+        params: {
+          [PARAMETERS.DPW_MIX]: 0.4, [PARAMETERS.FILTER_CUTOFF]: 800, [PARAMETERS.ENV_ATTACK]: 0.05, [PARAMETERS.ENV_DECAY]: 1.0, [PARAMETERS.ENV_SUSTAIN]: 0.3, [PARAMETERS.REVERB_MIX]: 0.4
+        }
+      },
+      {
+        name: "Bright WT Keys",
+        params: {
+          [PARAMETERS.WT_MIX]: 1.0, [PARAMETERS.WT_POS]: 0.1, [PARAMETERS.FILTER_CUTOFF]: 5000, [PARAMETERS.ENV_ATTACK]: 0.01, [PARAMETERS.ENV_DECAY]: 0.8, [PARAMETERS.ENV_SUSTAIN]: 0.2
+        }
+      },
+      {
+        name: "Unison Keys",
+        params: {
+          [PARAMETERS.OSC1_MIX]: 0.7, [PARAMETERS.UNISON_DETUNE]: 0.2, [PARAMETERS.FILTER_CUTOFF]: 2500, [PARAMETERS.ENV_ATTACK]: 0.02, [PARAMETERS.ENV_DECAY]: 1.2, [PARAMETERS.ENV_SUSTAIN]: 0.1
+        }
+      },
+      {
+        name: "Sub Keys",
+        params: {
+          [PARAMETERS.SUB_OSC_MIX]: 0.5, [PARAMETERS.OSC1_MIX]: 0.5, [PARAMETERS.FILTER_CUTOFF]: 1000, [PARAMETERS.ENV_ATTACK]: 0.01, [PARAMETERS.ENV_DECAY]: 0.6
+        }
+      },
+      {
+        name: "Detuned Tines",
+        params: {
+          [PARAMETERS.WT_MIX]: 0.9, [PARAMETERS.WT_DETUNE]: 0.1, [PARAMETERS.ENV_ATTACK]: 0.01, [PARAMETERS.ENV_DECAY]: 1.5, [PARAMETERS.REVERB_MIX]: 0.5
+        }
+      },
+      {
+        name: "Bell Keys",
+        params: {
+          [PARAMETERS.WT_MIX]: 0.8, [PARAMETERS.WT_DETUNE]: 24, [PARAMETERS.FILTER_CUTOFF]: 4000, [PARAMETERS.ENV_ATTACK]: 0.01, [PARAMETERS.ENV_DECAY]: 2.0
+        }
+      },
+      {
+        name: "Vintage DPW",
+        params: {
+          [PARAMETERS.DPW_MIX]: 0.6, [PARAMETERS.LOW_SHELF_ENABLE]: 1, [PARAMETERS.LOW_SHELF_FREQ]: 300, [PARAMETERS.LOW_SHELF_GAIN]: 6, [PARAMETERS.FILTER_CUTOFF]: 1500, [PARAMETERS.ENV_ATTACK]: 0.05, [PARAMETERS.ENV_DECAY]: 1.0
+        }
+      }
+    ]
+  },
+  {
+    category: "Percussion",
+    presets: [
+      {
+        name: "DPW Kick",
+        params: {
+          [PARAMETERS.DPW_MIX]: 1.0, [PARAMETERS.FILTER_CUTOFF]: 50, [PARAMETERS.FILTER_ENV_DEPTH]: 5000, [PARAMETERS.FILTER_DECAY]: 0.05, [PARAMETERS.ENV_ATTACK]: 0.01, [PARAMETERS.ENV_DECAY]: 0.3, [PARAMETERS.ENV_SUSTAIN]: 0.0
+        }
+      },
+      {
+        name: "Noise Snare",
+        params: {
+          [PARAMETERS.NOISE_MIX]: 1.0, [PARAMETERS.FILTER_CUTOFF]: 2000, [PARAMETERS.FILTER_RES]: 0.2, [PARAMETERS.ENV_DECAY]: 0.15, [PARAMETERS.ENV_SUSTAIN]: 0.0
+        }
+      },
+      {
+        name: "Hi-Hat",
+        params: {
+          [PARAMETERS.NOISE_MIX]: 0.8, [PARAMETERS.FILTER_CUTOFF]: 8000, [PARAMETERS.ENV_DECAY]: 0.05, [PARAMETERS.ENV_SUSTAIN]: 0.0
+        }
+      },
+      {
+        name: "Tom Tom",
+        params: {
+          [PARAMETERS.OSC1_MIX]: 0.8, [PARAMETERS.FILTER_CUTOFF]: 100, [PARAMETERS.FILTER_ENV_DEPTH]: 2000, [PARAMETERS.FILTER_DECAY]: 0.1, [PARAMETERS.ENV_DECAY]: 0.4
+        }
+      },
+      {
+        name: "Rim Shot",
+        params: {
+          [PARAMETERS.WT_MIX]: 0.5, [PARAMETERS.NOISE_MIX]: 0.5, [PARAMETERS.FILTER_CUTOFF]: 3000, [PARAMETERS.ENV_DECAY]: 0.02
+        }
+      },
+      {
+        name: "Digital Cowbell",
+        params: {
+          [PARAMETERS.WT_MIX]: 1.0, [PARAMETERS.WT_DETUNE]: 12, [PARAMETERS.FILTER_CUTOFF]: 4000, [PARAMETERS.ENV_DECAY]: 0.1
+        }
+      },
+      {
+        name: "Sub Boom",
+        params: {
+          [PARAMETERS.SUB_OSC_MIX]: 1.0, [PARAMETERS.FILTER_CUTOFF]: 60, [PARAMETERS.ENV_DECAY]: 1.0, [PARAMETERS.ENV_SUSTAIN]: 0.0
+        }
+      },
+      {
+        name: "Clap",
+        params: {
+          [PARAMETERS.NOISE_MIX]: 1.0, [PARAMETERS.FILTER_CUTOFF]: 1500, [PARAMETERS.ENV_ATTACK]: 0.01, [PARAMETERS.ENV_DECAY]: 0.1, [PARAMETERS.DELAY_MIX]: 0.3, [PARAMETERS.DELAY_TIME]: 0.01
+        }
+      },
+      {
+        name: "Zap",
+        params: {
+          [PARAMETERS.OSC1_MIX]: 1.0, [PARAMETERS.FILTER_CUTOFF]: 100, [PARAMETERS.FILTER_ENV_DEPTH]: 10000, [PARAMETERS.FILTER_DECAY]: 0.05, [PARAMETERS.ENV_DECAY]: 0.1
+        }
+      },
+      {
+        name: "Industrial Hit",
+        params: {
+          [PARAMETERS.DPW_MIX]: 1.0, [PARAMETERS.TS_DRIVE]: 0.8, [PARAMETERS.TS_MIX]: 0.5, [PARAMETERS.ENV_DECAY]: 0.2
+        }
+      }
+    ]
+  },
+  {
+    category: "Industrial",
+    presets: [
+      {
+        name: "Screaming DPW",
+        params: {
+          [PARAMETERS.DPW_MIX]: 1.0, [PARAMETERS.TS_DRIVE]: 1.0, [PARAMETERS.TS_MIX]: 1.0, [PARAMETERS.FILTER_CUTOFF]: 2000, [PARAMETERS.FILTER_RES]: 0.5
+        }
+      },
+      {
+        name: "Crushed WT",
+        params: {
+          [PARAMETERS.WT_MIX]: 1.0, [PARAMETERS.TS_DRIVE]: 0.7, [PARAMETERS.TS_MIX]: 0.8, [PARAMETERS.WT_POS]: 0.6
+        }
+      },
+      {
+        name: "Distorted Bass",
+        params: {
+          [PARAMETERS.SUB_OSC_MIX]: 1.0, [PARAMETERS.TS_DRIVE]: 0.9, [PARAMETERS.TS_MIX]: 0.6, [PARAMETERS.FILTER_CUTOFF]: 400
+        }
+      },
+      {
+        name: "Machine Noise",
+        params: {
+          [PARAMETERS.NOISE_MIX]: 1.0, [PARAMETERS.TS_DRIVE]: 0.5, [PARAMETERS.TS_MIX]: 0.4, [PARAMETERS.LFO_RATE]: 15, [PARAMETERS.FILTER_LFO_AMT]: 2000
+        }
+      },
+      {
+        name: "Glitch Seq",
+        params: {
+          [PARAMETERS.SEQ_ENABLE]: 1, [PARAMETERS.SEQ_TEMPO]: 160, [PARAMETERS.WT_MIX]: 0.8, [PARAMETERS.TS_DRIVE]: 0.6, [PARAMETERS.TS_MIX]: 0.3
+        }
+      },
+      {
+        name: "Overdriven Lead",
+        params: {
+          [PARAMETERS.OSC1_MIX]: 1.0, [PARAMETERS.TS_DRIVE]: 0.8, [PARAMETERS.TS_MIX]: 0.5, [PARAMETERS.FILTER_CUTOFF]: 3000
+        }
+      },
+      {
+        name: "Bit-Reduced Pad",
+        params: {
+          [PARAMETERS.WT_MIX]: 0.7, [PARAMETERS.TS_DRIVE]: 0.4, [PARAMETERS.TS_MIX]: 0.2, [PARAMETERS.ENV_ATTACK]: 1.0, [PARAMETERS.REVERB_MIX]: 0.5
+        }
+      },
+      {
+        name: "Gritty Sub",
+        params: {
+          [PARAMETERS.SUB_OSC_MIX]: 1.0, [PARAMETERS.LOW_SHELF_ENABLE]: 1, [PARAMETERS.LOW_SHELF_GAIN]: 12, [PARAMETERS.TS_DRIVE]: 0.3, [PARAMETERS.TS_MIX]: 0.2
+        }
+      },
+      {
+        name: "Feedback Loop",
+        params: {
+          [PARAMETERS.DELAY_MIX]: 0.8, [PARAMETERS.DELAY_FEEDBACK]: 0.95, [PARAMETERS.TS_DRIVE]: 0.5, [PARAMETERS.TS_MIX]: 0.5
+        }
+      },
+      {
+        name: "Industrial Drone",
+        params: {
+          [PARAMETERS.DPW_MIX]: 0.6, [PARAMETERS.WT_MIX]: 0.4, [PARAMETERS.TS_DRIVE]: 0.7, [PARAMETERS.TS_MIX]: 0.4, [PARAMETERS.ENV_ATTACK]: 3.0
+        }
+      }
+    ]
+  },
+  {
+    category: "Cinematic",
+    presets: [
+      {
+        name: "Epic Brass",
+        params: {
+          [PARAMETERS.OSC1_MIX]: 0.8, [PARAMETERS.UNISON_DETUNE]: 0.4, [PARAMETERS.FILTER_CUTOFF]: 1000, [PARAMETERS.FILTER_ENV_DEPTH]: 2000, [PARAMETERS.FILTER_ATTACK]: 0.1, [PARAMETERS.ENV_ATTACK]: 0.1, [PARAMETERS.REVERB_MIX]: 0.5
+        }
+      },
+      {
+        name: "Deep Impact",
+        params: {
+          [PARAMETERS.SUB_OSC_MIX]: 1.0, [PARAMETERS.LOW_SHELF_ENABLE]: 1, [PARAMETERS.LOW_SHELF_GAIN]: 18, [PARAMETERS.REVERB_MIX]: 0.6, [PARAMETERS.ENV_DECAY]: 2.0
+        }
+      },
+      {
+        name: "Mystery Pad",
+        params: {
+          [PARAMETERS.WT_MIX]: 0.7, [PARAMETERS.WT_POS]: 0.8, [PARAMETERS.ENV_ATTACK]: 2.0, [PARAMETERS.REVERB_MIX]: 0.7, [PARAMETERS.DELAY_MIX]: 0.3
+        }
+      },
+      {
+        name: "Suspense Seq",
+        params: {
+          [PARAMETERS.SEQ_ENABLE]: 1, [PARAMETERS.SEQ_TEMPO]: 90, [PARAMETERS.DPW_MIX]: 0.5, [PARAMETERS.FILTER_CUTOFF]: 600, [PARAMETERS.FILTER_RES]: 0.7
+        }
+      },
+      {
+        name: "Heroic Lead",
+        params: {
+          [PARAMETERS.OSC1_MIX]: 0.9, [PARAMETERS.OSC2_MIX]: 0.6, [PARAMETERS.OSC2_DETUNE]: 0.05, [PARAMETERS.FILTER_CUTOFF]: 2500, [PARAMETERS.ENV_ATTACK]: 0.05, [PARAMETERS.REVERB_MIX]: 0.4
+        }
+      },
+      {
+        name: "Dark Atmosphere",
+        params: {
+          [PARAMETERS.NOISE_MIX]: 0.3, [PARAMETERS.WT_MIX]: 0.6, [PARAMETERS.FILTER_CUTOFF]: 300, [PARAMETERS.REVERB_MIX]: 0.8, [PARAMETERS.ENV_ATTACK]: 4.0
+        }
+      },
+      {
+        name: "Tension Pluck",
+        params: {
+          [PARAMETERS.WT_MIX]: 0.8, [PARAMETERS.FILTER_CUTOFF]: 1500, [PARAMETERS.ENV_DECAY]: 0.4, [PARAMETERS.DELAY_MIX]: 0.4, [PARAMETERS.DELAY_TIME]: 0.33
+        }
+      },
+      {
+        name: "Majestic Pad",
+        params: {
+          [PARAMETERS.UNISON_DETUNE]: 0.6, [PARAMETERS.FILTER_CUTOFF]: 1200, [PARAMETERS.ENV_ATTACK]: 3.0, [PARAMETERS.REVERB_MIX]: 0.6, [PARAMETERS.REVERB_DECAY]: 0.95
+        }
+      },
+      {
+        name: "Cyberpunk Bass",
+        params: {
+          [PARAMETERS.DPW_MIX]: 1.0, [PARAMETERS.TS_DRIVE]: 0.6, [PARAMETERS.TS_MIX]: 0.4, [PARAMETERS.FILTER_CUTOFF]: 500, [PARAMETERS.FILTER_RES]: 0.3
+        }
+      },
+      {
+        name: "Final Credits",
+        params: {
+          [PARAMETERS.WT_MIX]: 0.5, [PARAMETERS.OSC1_MIX]: 0.5, [PARAMETERS.ENV_ATTACK]: 2.0, [PARAMETERS.ENV_RELEASE]: 5.0, [PARAMETERS.REVERB_MIX]: 0.8
+        }
+      }
+    ]
+  }
+];

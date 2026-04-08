@@ -40,10 +40,6 @@ export class Synth3D {
   private wtCtx: CanvasRenderingContext2D;
   private wtTexture: THREE.CanvasTexture;
   private wtMesh!: THREE.Mesh;
-  private stochCanvas!: HTMLCanvasElement;
-  private stochCtx!: CanvasRenderingContext2D;
-  private stochTexture!: THREE.CanvasTexture;
-  private stochMesh!: THREE.Mesh;
   private knobData: Array<{ 
     name: string,
     paramIndex: number, 
@@ -108,13 +104,6 @@ export class Synth3D {
     this.wtCanvas.height = 128;
     this.wtCtx = this.wtCanvas.getContext('2d')!;
     this.wtTexture = new THREE.CanvasTexture(this.wtCanvas);
-
-    // Stochastic Setup
-    this.stochCanvas = document.createElement('canvas');
-    this.stochCanvas.width = 256;
-    this.stochCanvas.height = 128;
-    this.stochCtx = this.stochCanvas.getContext('2d')!;
-    this.stochTexture = new THREE.CanvasTexture(this.stochCanvas);
 
     this.initEnvironment();
     this.buildUI();
@@ -228,7 +217,8 @@ export class Synth3D {
     // Sections - Compacted
     this.createSectionBox(-8, 0, 5, 11, "OSC");
     this.createSectionBox(-3.5, 0, 4, 11, "FILTER");
-    this.createSectionBox(1, 0, 5, 11, "AMP ENV");
+    this.createSectionBox(1, -1.5, 5, 6, "AMP ENV");
+    this.createSectionBox(1, 3.5, 5, 4, "DISTORTION");
     this.createSectionBox(5.5, 0, 4, 11, "LFO");
     this.createSectionBox(9.5, 0, 3, 11, "FX");
     this.createSectionBox(5.5, 3.5, 4, 3, "WAVETABLE");
@@ -262,16 +252,6 @@ export class Synth3D {
     this.scene.add(this.wtMesh);
     this.createLabel("WAVETABLE", 5.5, 0.01, 2.4, 24, "#00ff88");
 
-    // Stochastic Display Window
-    const stochDispGeo = new THREE.PlaneGeometry(3, 1.2);
-    const stochDispMat = new THREE.MeshBasicMaterial({ map: this.stochTexture });
-    this.stochMesh = new THREE.Mesh(stochDispGeo, stochDispMat);
-    this.stochMesh.position.set(9.5, 0.45, 3.2);
-    this.stochMesh.rotation.x = -Math.PI / 2;
-    this.scene.add(this.stochMesh);
-    this.createLabel("STOCHASTIC", 9.5, 0.01, 2.4, 24, "#00ff88");
-
-
     const pbr = this.textureManager.generateFallbackPBR();
     const knobMat = new THREE.MeshPhysicalMaterial({
       color: 0x1a1a1a,
@@ -301,7 +281,12 @@ export class Synth3D {
       { name: 'DET', param: PARAMETERS.OSC2_DETUNE, min: -24, max: 24, value: 0, x: -9, z: 2.5 },
       { name: 'UNI', param: PARAMETERS.UNISON_DETUNE, min: 0, max: 1, value: 0, x: -7, z: 2.5 },
       { name: 'SUB', param: PARAMETERS.SUB_OSC_MIX, min: 0, max: 1, value: 0, x: -9, z: 4.5 },
-      { name: 'NOISE', param: PARAMETERS.NOISE_MIX, min: 0, max: 1, value: 0, x: -7, z: 4.5 },
+      { name: 'S WAV', param: PARAMETERS.SUB_OSC_WAVE, min: 0, max: 3, value: 0, x: -7, z: 4.5 },
+      { name: 'NOISE', param: PARAMETERS.NOISE_MIX, min: 0, max: 1, value: 0, x: -9, z: 6.5 },
+      
+      // DPW
+      { name: 'DPW', param: PARAMETERS.DPW_MIX, min: 0, max: 1, value: 0, x: -7, z: 6.5 },
+      { name: 'DPW D', param: PARAMETERS.DPW_DETUNE, min: -24, max: 24, value: 0, x: -9, z: 8.5 },
       
       // FILTER
       { name: 'CUT', param: PARAMETERS.FILTER_CUTOFF, min: 20, max: 20000, value: 1200, x: -4.5, z: -2.5, modParam: PARAMETERS.FILTER_LFO_AMT },
@@ -336,11 +321,21 @@ export class Synth3D {
       { name: 'R MIX', param: PARAMETERS.REVERB_MIX, min: 0, max: 1, value: 0.2, x: 10.5, z: 1.5 },
       { name: 'R DMP', param: PARAMETERS.REVERB_DAMP, min: 0, max: 1, value: 0.2, x: 8.5, z: 3.5 },
 
+      // LOW SHELF
+      { name: 'LS FREQ', param: PARAMETERS.LOW_SHELF_FREQ, min: 20, max: 1000, value: 200, x: 8.5, z: 5.5 },
+      { name: 'LS GAIN', param: PARAMETERS.LOW_SHELF_GAIN, min: -24, max: 24, value: 0, x: 10.5, z: 5.5 },
+
+      // TUBE SCREAMER
+      { name: 'TS DRV', param: PARAMETERS.TS_DRIVE, min: 0, max: 1, value: 0.5, x: 0, z: 2.5 },
+      { name: 'TS TON', param: PARAMETERS.TS_TONE, min: 0, max: 1, value: 0.5, x: 2, z: 2.5 },
+      { name: 'TS LVL', param: PARAMETERS.TS_LEVEL, min: 0, max: 1, value: 0.5, x: 0, z: 4.5 },
+      { name: 'TS MIX', param: PARAMETERS.TS_MIX, min: 0, max: 1, value: 0, x: 2, z: 4.5 },
+
       // WAVETABLE
-      { name: 'MIX', param: PARAMETERS.WT_MIX, min: 0, max: 1, value: 0.5, x: 4.6, z: 4.2, scale: 0.6 },
-      { name: 'POS', param: PARAMETERS.WT_POS, min: 0, max: 1, value: 0, x: 5.2, z: 4.2, scale: 0.6, modParam: PARAMETERS.WT_LFO_AMT },
-      { name: 'DET', param: PARAMETERS.WT_DETUNE, min: -24, max: 24, value: 0, x: 5.8, z: 4.2, scale: 0.6 },
-      { name: 'LFO', param: PARAMETERS.WT_LFO_AMT, min: 0, max: 1, value: 0.2, x: 6.4, z: 4.2, scale: 0.6 },
+      { name: 'MIX', param: PARAMETERS.WT_MIX, min: 0, max: 1, value: 0.5, x: 4.6, z: 4.8, scale: 0.6 },
+      { name: 'POS', param: PARAMETERS.WT_POS, min: 0, max: 1, value: 0, x: 5.2, z: 4.8, scale: 0.6, modParam: PARAMETERS.WT_LFO_AMT },
+      { name: 'DET', param: PARAMETERS.WT_DETUNE, min: -24, max: 24, value: 0, x: 5.8, z: 4.8, scale: 0.6 },
+      { name: 'LFO', param: PARAMETERS.WT_LFO_AMT, min: 0, max: 1, value: 0.2, x: 6.4, z: 4.8, scale: 0.6 },
 
       { name: 'S1', param: PARAMETERS.SEQ_STEP_0, min: -12, max: 12, value: 0, x: -4.5, z: 7.5 },
       { name: 'S2', param: PARAMETERS.SEQ_STEP_1, min: -12, max: 12, value: 3, x: -2.5, z: 7.5 },
@@ -350,6 +345,8 @@ export class Synth3D {
       { name: 'S6', param: PARAMETERS.SEQ_STEP_5, min: -12, max: 12, value: 0, x: 5.5, z: 7.5 },
       { name: 'S7', param: PARAMETERS.SEQ_STEP_6, min: -12, max: 12, value: 0, x: 7.5, z: 7.5 },
       { name: 'S8', param: PARAMETERS.SEQ_STEP_7, min: -12, max: 12, value: 0, x: 9.5, z: 7.5 },
+      
+      { name: 'TEMPO', param: PARAMETERS.SEQ_TEMPO, min: 40, max: 240, value: 120, x: -7, z: 7.5 },
     ];
 
     // SEQ LEDs
@@ -378,12 +375,16 @@ export class Synth3D {
     this.createLabel("SEQ ON", -9, 0.01, 8.6, 20);
 
     // OSC1 Wave Switch
-    const osc1Switch = this.createSwitch("OSC1 WAVE", -9, 4.5, PARAMETERS.OSC1_WAVE);
+    const osc1Switch = this.createSwitch("OSC1 WAVE", -9, -4.5, PARAMETERS.OSC1_WAVE);
     this.scene.add(osc1Switch);
 
     // LFO Sync Switch
     const lfoSyncSwitch = this.createSwitch("LFO SYNC", 5.5, -4.5, PARAMETERS.LFO_SYNC_ENABLE);
     this.scene.add(lfoSyncSwitch);
+
+    // Low Shelf Switch
+    const lsSwitch = this.createSwitch("LS ON", 6.5, 5.5, PARAMETERS.LOW_SHELF_ENABLE);
+    this.scene.add(lsSwitch);
 
     this.syncSwitches();
 
@@ -469,13 +470,16 @@ export class Synth3D {
   }
 
   private getSection(index: number): string {
-    if (index < 7) return 'OSC';
-    if (index < 11) return 'FILTER';
-    if (index < 15) return 'FILTER_ENV';
-    if (index < 19) return 'AMP_ENV';
-    if (index < 22) return 'LFO';
-    if (index < 29) return 'FX';
-    if (index < 33) return 'WT';
+    if (index < 9) return 'OSC';
+    if (index < 11) return 'OSC'; // DPW is also OSC
+    if (index < 15) return 'FILTER';
+    if (index < 19) return 'FILTER_ENV';
+    if (index < 23) return 'AMP_ENV';
+    if (index < 26) return 'LFO';
+    if (index < 33) return 'FX';
+    if (index < 35) return 'EQ';
+    if (index < 39) return 'DIST';
+    if (index < 43) return 'WT';
     return 'SEQ';
   }
 
@@ -487,6 +491,8 @@ export class Synth3D {
       case 'AMP_ENV': return 0x00ff88;
       case 'LFO': return 0xff0088;
       case 'FX': return 0x8800ff;
+      case 'EQ': return 0x00ffff;
+      case 'DIST': return 0xff0000;
       case 'WT': return 0xffff00;
       default: return 0xaaaaaa;
     }
@@ -618,7 +624,29 @@ export class Synth3D {
     data.targetValue = Math.max(data.min, Math.min(data.max, data.targetValue));
     
     // Update LCD
-    const valStr = data.paramIndex === PARAMETERS.FILTER_CUTOFF ? `${Math.round(data.targetValue)} HZ` : data.targetValue.toFixed(2);
+    let valStr = data.targetValue.toFixed(2);
+    
+    // Custom formatting based on parameter type
+    if (data.paramIndex === PARAMETERS.FILTER_CUTOFF || data.paramIndex === PARAMETERS.LOW_SHELF_FREQ) {
+      valStr = `${Math.round(data.targetValue)} HZ`;
+    } else if (data.paramIndex === PARAMETERS.SUB_OSC_WAVE) {
+      const waveIdx = Math.round(data.targetValue);
+      const waves = ['PULSE', 'SAW', 'TRI', 'SINE'];
+      valStr = waves[waveIdx] || 'PULSE';
+    } else if (data.name.includes('RATE')) {
+      valStr = `${data.targetValue.toFixed(1)} HZ`;
+    } else if (data.name.includes('DET') || data.name.startsWith('S') && data.name.length <= 2) {
+      valStr = `${data.targetValue > 0 ? '+' : ''}${Math.round(data.targetValue)} SEMI`;
+    } else if (data.paramIndex === PARAMETERS.SEQ_TEMPO) {
+      valStr = `${Math.round(data.targetValue)} BPM`;
+    } else if (data.max === 1 && data.min === 0) {
+      valStr = `${Math.round(data.targetValue * 100)}%`;
+    } else if (data.max === 5) {
+      valStr = `${data.targetValue.toFixed(2)} SEC`;
+    } else if (data.paramIndex === PARAMETERS.LOW_SHELF_GAIN) {
+      valStr = `${data.targetValue > 0 ? '+' : ''}${data.targetValue.toFixed(1)} DB`;
+    }
+    
     this.updateLCD(data.name, valStr);
 
     // Zero-latency write to Shared Memory
@@ -811,12 +839,21 @@ export class Synth3D {
     // Smoothly animate all knobs towards their target values
     for (let i = 0; i < this.knobCount; i++) {
       const data = this.knobData[i];
+      
+      // Sync targetValue from host if not actively dragging
+      if (this.activeInstanceId !== i) {
+        data.targetValue = this.host.paramArray[data.paramIndex];
+      }
+
       const diff = data.targetValue - data.value;
       if (Math.abs(diff) > 0.0001 || this.activeInstanceId === i) {
         data.value += diff * 0.2; // Smooth lerp
         this.updateKnobInstance(i);
       }
     }
+
+    // Sync seqEnabled from host
+    this.seqEnabled = this.host.paramArray[PARAMETERS.SEQ_ENABLE] > 0.5;
 
     // Animate Sequencer Switch
     const targetZ = this.seqEnabled ? 7.8 : 7.2;

@@ -14,6 +14,7 @@
     "@google/genai": "^1.29.0",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
+    "@webaudiomodules/sdk": "^0.0.12",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "lucide-react": "^0.546.0",
@@ -24,8 +25,10 @@
     "vite": "^6.2.0"
   },
   "devDependencies": {
+    "@grame/faustwasm": "^0.16.1",
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
+    "@webaudiomodules/api": "^2.0.0-alpha.6",
     "autoprefixer": "^10.4.21",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
