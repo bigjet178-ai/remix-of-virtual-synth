@@ -1,4 +1,5 @@
 import { PARAMETERS, MAX_PARAMETERS, EventRingBuffer, EVENTS } from '../audio/SharedState';
+import { Preset } from '../audio/Presets';
 
 export class SynthHost {
   private ctx: AudioContext;
@@ -78,6 +79,7 @@ export class SynthHost {
     this.setParameter(PARAMETERS.SEQ_STEP_5, 0.0);
     this.setParameter(PARAMETERS.SEQ_STEP_6, 0.0);
     this.setParameter(PARAMETERS.SEQ_STEP_7, 0.0);
+    this.setParameter(PARAMETERS.SEQ_TRANSPOSE, 0.0);
 
     this.setParameter(PARAMETERS.SUB_OSC_WAVE, 0.0);
     this.setParameter(PARAMETERS.DPW_MIX, 0.0);
@@ -179,6 +181,30 @@ export class SynthHost {
     return this.ctx;
   }
 
+  public resetParameters(): void {
+    // Set all parameters to safe defaults
+    for (let i = 0; i < MAX_PARAMETERS; i++) {
+      this.setParameter(i, 0);
+    }
+    
+    // Essential defaults
+    this.setParameter(PARAMETERS.OSC1_MIX, 0.7);
+    this.setParameter(PARAMETERS.FILTER_CUTOFF, 20000);
+    this.setParameter(PARAMETERS.ENV_SUSTAIN, 1.0);
+    this.setParameter(PARAMETERS.ENV_RELEASE, 0.1);
+    this.setParameter(PARAMETERS.MASTER_VOL, 0.7);
+    this.setParameter(PARAMETERS.FX_SRC_OSC1, 1.0);
+    this.setParameter(PARAMETERS.FX_SRC_OSC2, 1.0);
+    this.setParameter(PARAMETERS.FX_SRC_WT, 1.0);
+  }
+
+  public loadPreset(preset: Preset): void {
+    this.resetParameters();
+    Object.entries(preset.params).forEach(([param, value]) => {
+      this.setParameter(Number(param), value as number);
+    });
+  }
+
   public randomize(): void {
     // Pick a "style" for randomization to ensure more cohesive results
     const styles = ['bass', 'lead', 'pad', 'pluck', 'noise'];
@@ -242,5 +268,32 @@ export class SynthHost {
     this.setParameter(PARAMETERS.WT_POS, Math.random());
     this.setParameter(PARAMETERS.SUB_OSC_WAVE, Math.floor(Math.random() * 4));
     this.setParameter(PARAMETERS.NOISE_MIX, style === 'noise' ? 0.5 : Math.random() * 0.1);
+  }
+
+  public randomizeSequencer(): void {
+    // Randomize steps (pitch)
+    const scales = [
+      [0, 2, 4, 5, 7, 9, 11], // Major
+      [0, 2, 3, 5, 7, 8, 10], // Minor
+      [0, 2, 4, 7, 9],       // Pentatonic Major
+      [0, 3, 5, 7, 10],      // Pentatonic Minor
+      [0, 3, 5, 6, 7, 10]    // Blues
+    ];
+    const scale = scales[Math.floor(Math.random() * scales.length)];
+    
+    for (let i = 0; i < 8; i++) {
+      // Step pitch (-12 to 12)
+      const octave = Math.floor(Math.random() * 3) - 1; // -1, 0, or 1
+      const note = scale[Math.floor(Math.random() * scale.length)];
+      let pitch = octave * 12 + note;
+      pitch = Math.max(-12, Math.min(12, pitch));
+      this.setParameter(PARAMETERS.SEQ_STEP_0 + i, pitch);
+      
+      // Velocity (0.2 to 1.0)
+      this.setParameter(PARAMETERS.SEQ_VEL_0 + i, 0.2 + Math.random() * 0.8);
+      
+      // Gate (0.1 to 2.0)
+      this.setParameter(PARAMETERS.SEQ_GATE_0 + i, 0.1 + Math.random() * 1.9);
+    }
   }
 }

@@ -80,6 +80,16 @@ export class TextureManager {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Brushed metal effect (horizontal streaks)
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 1000; i++) {
+      const y = Math.random() * canvas.height;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(canvas.width, y);
+      ctx.stroke();
+    }
+
     for (let i = 0; i < 2000; i++) {
       const x = Math.random() * canvas.width;
       const y = Math.random() * canvas.height;
@@ -198,6 +208,38 @@ export class TextureManager {
       ctx.beginPath();
       ctx.moveTo(centerX, centerY);
       ctx.lineTo(centerX + Math.cos(angle) * length, centerY + Math.sin(angle) * length);
+      ctx.stroke();
+    }
+    
+    return new THREE.CanvasTexture(canvas);
+  }
+
+  public createAnodizedTexture(color: string): THREE.CanvasTexture {
+    const { ctx, canvas } = this;
+    canvas.width = 256;
+    canvas.height = 256;
+    ctx.clearRect(0, 0, 256, 256);
+    
+    // Base color
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, 256, 256);
+    
+    // Metallic noise
+    for (let i = 0; i < 5000; i++) {
+      const x = Math.random() * 256;
+      const y = Math.random() * 256;
+      const alpha = Math.random() * 0.1;
+      ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+      ctx.fillRect(x, y, 1, 1);
+    }
+    
+    // Circular brushing
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 100; i++) {
+      const r = Math.random() * 128;
+      ctx.beginPath();
+      ctx.arc(128, 128, r, 0, Math.PI * 2);
       ctx.stroke();
     }
     

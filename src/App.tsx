@@ -33,9 +33,13 @@ function App() {
 
   const applyPreset = (preset: Preset) => {
     if (!hostRef.current) return;
-    Object.entries(preset.params).forEach(([param, value]) => {
-      hostRef.current!.setParameter(Number(param), value);
-    });
+    hostRef.current.loadPreset(preset);
+    
+    // Update 3D UI LCD
+    if (synth3DRef.current) {
+      synth3DRef.current.updateLCD("PRESET LOADED", preset.name);
+    }
+    
     setShowPresets(false);
     setActiveCategory(null);
   };
@@ -198,7 +202,17 @@ function App() {
       if (offset !== undefined) {
         const note = (octave + 1) * 12 + offset;
         activeNotes.current.set(key, note);
-        hostRef.current.noteOn(note);
+        
+        const seqEnabled = hostRef.current.paramArray[PARAMETERS.SEQ_ENABLE] > 0.5;
+        if (seqEnabled) {
+          const transpose = note - 60;
+          hostRef.current.setParameter(PARAMETERS.SEQ_TRANSPOSE, transpose);
+          if (synth3DRef.current) {
+            synth3DRef.current.updateLCD("SEQ TRANSPOSE", `${transpose > 0 ? '+' : ''}${transpose} SEMI`);
+          }
+        } else {
+          hostRef.current.noteOn(note);
+        }
       }
     };
 

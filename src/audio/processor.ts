@@ -34,6 +34,7 @@ class Voice {
   public isActive: boolean = false;
   public startTime: number = 0;
   public currentEnv: number = 0;
+  public velocity: number = 1.0;
   private chaosOffset: number = 0;
   private lfoFadeCounter: number = 0;
 
@@ -51,9 +52,10 @@ class Voice {
     this.filterAdsr = new ADSR(sampleRate);
   }
 
-  trigger(note: number, freq: number, time: number, chaosAmt: number) {
+  trigger(note: number, freq: number, time: number, chaosAmt: number, velocity: number = 1.0) {
     this.note = note;
     this.freq = freq;
+    this.velocity = velocity;
     this.isActive = true;
     this.startTime = time;
     this.adsr.trigger();
@@ -205,8 +207,8 @@ class Voice {
     if (routeWT) sigFX += wtSig; else sigDry += wtSig;
 
     // Apply envelope
-    sigFX *= envVal;
-    sigDry *= envVal;
+    sigFX *= envVal * this.velocity;
+    sigDry *= envVal * this.velocity;
 
     // Filter Modulation
     const targetCutoff = p[PARAMETERS.FILTER_CUTOFF];
@@ -284,7 +286,7 @@ class SynthProcessor extends AudioWorkletProcessor {
     };
   }
 
-  private processEvent(type: number, value: number) {
+  private processEvent(type: number, value: number, velocity: number = 1.0) {
     const p = this.paramArray;
     if (!p) return;
 
@@ -301,7 +303,7 @@ class SynthProcessor extends AudioWorkletProcessor {
         );
       }
       
-      voice.trigger(note, freq, this.frameCount, chaosAmt);
+      voice.trigger(note, freq, this.frameCount, chaosAmt, velocity);
     } else if (type === EVENTS.NOTE_OFF) {
       const note = value;
       this.voices.forEach(v => {
@@ -371,8 +373,18 @@ class SynthProcessor extends AudioWorkletProcessor {
       
       if (seqEnabled) {
         this.seqFrameCounter++;
+
+        // Gate logic
+        const currentGate = p[PARAMETERS.SEQ_GATE_0 + this.seqStep] ?? 0.5;
+        const gateFrames = Math.floor(framesPerStep * currentGate);
+        if (this.seqFrameCounter === gateFrames) {
+          if (this.seqNotes[this.seqStep] !== -1) {
+            this.processEvent(EVENTS.NOTE_OFF, this.seqNotes[this.seqStep]);
+          }
+        }
+
         if (this.seqFrameCounter >= framesPerStep) {
-          // Release previous step note using the stored note number
+          // Release previous step note if it's still on
           const prevStep = this.seqStep;
           if (this.seqNotes[prevStep] !== -1) {
             this.processEvent(EVENTS.NOTE_OFF, this.seqNotes[prevStep]);
@@ -382,9 +394,11 @@ class SynthProcessor extends AudioWorkletProcessor {
           this.seqFrameCounter = 0;
           this.seqStep = (this.seqStep + 1) % 8;
           const stepOffset = p[PARAMETERS.SEQ_STEP_0 + this.seqStep];
-          const note = 60 + stepOffset;
+          const velocity = p[PARAMETERS.SEQ_VEL_0 + this.seqStep] ?? 1.0;
+          const transpose = p[PARAMETERS.SEQ_TRANSPOSE] || 0;
+          const note = 60 + stepOffset + transpose;
           this.seqNotes[this.seqStep] = note;
-          this.processEvent(EVENTS.NOTE_ON, note);
+          this.processEvent(EVENTS.NOTE_ON, note, velocity);
         }
       }
 

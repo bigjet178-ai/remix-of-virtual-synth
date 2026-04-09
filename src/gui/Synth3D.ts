@@ -24,8 +24,10 @@ export class Synth3D {
   private knobCount = 0;
   private activeInstanceId: number | null = null;
   private knobMeshes: THREE.Mesh[] = [];
+  private panelMesh: THREE.Mesh | null = null;
   private dummy = new THREE.Object3D();
   private seqSwitch!: THREE.Mesh;
+  private seqRandomButton!: THREE.Mesh;
   private seqEnabled: boolean = false;
   private seqStepLEDs: THREE.Mesh[] = [];
   private currentSeqStep: number = -1;
@@ -45,6 +47,19 @@ export class Synth3D {
   private lfoCtx: CanvasRenderingContext2D;
   private lfoTexture: THREE.CanvasTexture;
   private lfoMesh!: THREE.Mesh;
+  private seqMatrixCanvas: HTMLCanvasElement;
+  private seqMatrixCtx: CanvasRenderingContext2D;
+  private seqMatrixTexture: THREE.CanvasTexture;
+  private seqMatrixMesh!: THREE.Mesh;
+  private adsrCanvas: HTMLCanvasElement;
+  private adsrCtx: CanvasRenderingContext2D;
+  private adsrTexture: THREE.CanvasTexture;
+  private adsrMesh!: THREE.Mesh;
+  private filterGraphCanvas: HTMLCanvasElement;
+  private filterGraphCtx: CanvasRenderingContext2D;
+  private filterGraphTexture: THREE.CanvasTexture;
+  private filterGraphMesh!: THREE.Mesh;
+  private sectionTitles: Array<{ mesh: THREE.Mesh, view: string }> = [];
   private lfo1Val: number = 0;
   private lfo2Val: number = 0;
   private lfoHistory1: number[] = new Array(100).fill(0);
@@ -126,6 +141,27 @@ export class Synth3D {
     this.lfoCtx = this.lfoCanvas.getContext('2d')!;
     this.lfoTexture = new THREE.CanvasTexture(this.lfoCanvas);
 
+    // Sequencer Matrix Setup
+    this.seqMatrixCanvas = document.createElement('canvas');
+    this.seqMatrixCanvas.width = 512;
+    this.seqMatrixCanvas.height = 128;
+    this.seqMatrixCtx = this.seqMatrixCanvas.getContext('2d')!;
+    this.seqMatrixTexture = new THREE.CanvasTexture(this.seqMatrixCanvas);
+
+    // ADSR Setup
+    this.adsrCanvas = document.createElement('canvas');
+    this.adsrCanvas.width = 256;
+    this.adsrCanvas.height = 128;
+    this.adsrCtx = this.adsrCanvas.getContext('2d')!;
+    this.adsrTexture = new THREE.CanvasTexture(this.adsrCanvas);
+
+    // Filter Graph Setup
+    this.filterGraphCanvas = document.createElement('canvas');
+    this.filterGraphCanvas.width = 256;
+    this.filterGraphCanvas.height = 128;
+    this.filterGraphCtx = this.filterGraphCanvas.getContext('2d')!;
+    this.filterGraphTexture = new THREE.CanvasTexture(this.filterGraphCanvas);
+
     this.initEnvironment();
     this.buildUI();
     this.bindEvents();
@@ -162,7 +198,7 @@ export class Synth3D {
     this.uiGroup.position.set(-1.2, 0, -2.0);
   }
 
-  private createLabel(text: string, x: number, y: number, z: number, size: number = 36, color: string = '#aaaaaa') {
+  private createLabel(text: string, x: number, y: number, z: number, size: number = 36, color: string = '#aaaaaa'): THREE.Mesh {
     const canvas = document.createElement('canvas');
     canvas.width = 512; // Higher res for sharper text
     canvas.height = 128;
@@ -191,11 +227,15 @@ export class Synth3D {
     mesh.position.set(x, y, z);
     mesh.rotation.x = -Math.PI / 2;
     this.uiGroup.add(mesh);
+    return mesh;
   }
 
-  private createSectionBox(x: number, z: number, width: number, height: number, title: string) {
+  private createSectionBox(x: number, z: number, width: number, height: number, title: string, view?: string) {
     // Title
-    this.createLabel(title, x, 0.02, z - height / 2 + 0.4, 42, '#00ff88');
+    const label = this.createLabel(title, x, 0.02, z - height / 2 + 0.4, 42, '#00ff88');
+    if (view) {
+      this.sectionTitles.push({ mesh: label, view });
+    }
 
     // Subtle Frame
     const frameGeo = new THREE.EdgesGeometry(new THREE.PlaneGeometry(width - 0.2, height - 0.2));
@@ -237,7 +277,7 @@ export class Synth3D {
     const sw = new THREE.Mesh(switchGeo, switchMat);
     sw.position.set(0, 0.3 * scale, 0);
     group.add(sw);
-    this.createLabel(label, 0, 0.01, 1.1 * scale, 20 * scale);
+    this.createLabel(label, x, 0.01, z + 1.1 * scale, 20 * scale);
     
     group.position.set(x, 0, z);
     this.switches.push({ mesh: sw, paramIndex, value: 0 });
@@ -257,6 +297,7 @@ export class Synth3D {
     const panel = new THREE.Mesh(panelGeo, panelMat);
     panel.position.set(0, -0.4, 1.5); // Shifted to center the controls
     this.uiGroup.add(panel);
+    this.panelMesh = panel;
 
     // Wood Side Panels
     const sidePanelGeo = new THREE.BoxGeometry(0.6, 1.2, 20.2);
@@ -276,12 +317,12 @@ export class Synth3D {
     this.uiGroup.add(rightPanel);
 
     // Sections - Compacted
-    this.createSectionBox(-8, -1.5, 5, 6, "OSC");
-    this.createSectionBox(-3.5, -1.5, 4, 6, "FILTER");
-    this.createSectionBox(1, -1.5, 5, 6, "AMP ENV");
+    this.createSectionBox(-8, -1.5, 5, 6, "OSC", "osc");
+    this.createSectionBox(-3.5, -1.5, 4, 6, "FILTER", "filter");
+    this.createSectionBox(1, -1.5, 5, 6, "AMP ENV", "amp");
     this.createSectionBox(1, 3.5, 5, 4, "DISTORTION");
     this.createSectionBox(5.5, -1.5, 4, 6, "LFO");
-    this.createSectionBox(9.5, -1.5, 3, 6, "FX");
+    this.createSectionBox(9.5, -1.5, 3, 6, "FX", "fx");
     this.createSectionBox(9.5, 3.5, 3, 4, "EQ");
     this.createSectionBox(-3.5, 3.5, 4, 3, "FILTER ENV");
     this.createSectionBox(12, -1.5, 2, 6, "MASTER");
@@ -299,7 +340,7 @@ export class Synth3D {
     seqBg.rotation.x = -Math.PI / 2;
     this.uiGroup.add(seqBg);
     
-    this.createSectionBox(0, 7.5, 20, 3.5, "SEQUENCER");
+    this.createSectionBox(0, 7.5, 20, 3.5, "SEQUENCER", "seq");
     // Removed redundant FILTER ENV box call here as it's moved up
 
     // CRT Oscilloscope
@@ -337,6 +378,32 @@ export class Synth3D {
     this.lfoMesh.rotation.x = -Math.PI / 2;
     this.uiGroup.add(this.lfoMesh);
     this.createLabel("LFO MODULATION", 5.5, 0.01, -5.5, 24, "#ff0088");
+
+    // Sequencer Matrix Display
+    const seqMatrixGeo = new THREE.PlaneGeometry(12, 1.8);
+    const seqMatrixMat = new THREE.MeshBasicMaterial({ map: this.seqMatrixTexture, transparent: true, opacity: 0.9 });
+    this.seqMatrixMesh = new THREE.Mesh(seqMatrixGeo, seqMatrixMat);
+    this.seqMatrixMesh.position.set(2.5, 0.02, 6.4);
+    this.seqMatrixMesh.rotation.x = -Math.PI / 2;
+    this.uiGroup.add(this.seqMatrixMesh);
+
+    // ADSR Graph
+    const adsrGeo = new THREE.PlaneGeometry(3, 1.5);
+    const adsrMat = new THREE.MeshBasicMaterial({ map: this.adsrTexture });
+    this.adsrMesh = new THREE.Mesh(adsrGeo, adsrMat);
+    this.adsrMesh.position.set(1, 0.01, -1.0);
+    this.adsrMesh.rotation.x = -Math.PI / 2;
+    this.uiGroup.add(this.adsrMesh);
+    this.createLabel("AMP ENVELOPE", 1, 0.01, -2.0, 24, "#00ff88");
+
+    // Filter Graph
+    const filterGraphGeo = new THREE.PlaneGeometry(3, 1.5);
+    const filterGraphMat = new THREE.MeshBasicMaterial({ map: this.filterGraphTexture });
+    this.filterGraphMesh = new THREE.Mesh(filterGraphGeo, filterGraphMat);
+    this.filterGraphMesh.position.set(-3.5, 0.01, -1.0);
+    this.filterGraphMesh.rotation.x = -Math.PI / 2;
+    this.uiGroup.add(this.filterGraphMesh);
+    this.createLabel("FILTER RESPONSE", -3.5, 0.01, -2.0, 24, "#00ff88");
 
     const knobCapTexture = this.textureManager.createKnobCapTexture();
     const knobMat = new THREE.MeshPhysicalMaterial({
@@ -424,16 +491,16 @@ export class Synth3D {
       { name: 'DET', param: PARAMETERS.WT_DETUNE, min: -24, max: 24, value: 0, x: 5.8, z: 4.8, scale: 0.6 },
       { name: 'LFO', param: PARAMETERS.WT_LFO_AMT, min: 0, max: 1, value: 0.2, x: 6.4, z: 4.8, scale: 0.6 },
 
-      { name: 'S1', param: PARAMETERS.SEQ_STEP_0, min: -12, max: 12, value: 0, x: -4.5, z: 7.5 },
-      { name: 'S2', param: PARAMETERS.SEQ_STEP_1, min: -12, max: 12, value: 3, x: -2.5, z: 7.5 },
-      { name: 'S3', param: PARAMETERS.SEQ_STEP_2, min: -12, max: 12, value: 7, x: -0.5, z: 7.5 },
-      { name: 'S4', param: PARAMETERS.SEQ_STEP_3, min: -12, max: 12, value: 10, x: 1.5, z: 7.5 },
-      { name: 'S5', param: PARAMETERS.SEQ_STEP_4, min: -12, max: 12, value: 0, x: 3.5, z: 7.5 },
-      { name: 'S6', param: PARAMETERS.SEQ_STEP_5, min: -12, max: 12, value: 0, x: 5.5, z: 7.5 },
-      { name: 'S7', param: PARAMETERS.SEQ_STEP_6, min: -12, max: 12, value: 0, x: 7.5, z: 7.5 },
-      { name: 'S8', param: PARAMETERS.SEQ_STEP_7, min: -12, max: 12, value: 0, x: 9.5, z: 7.5 },
+      { name: 'S1', param: PARAMETERS.SEQ_STEP_0, min: -12, max: 12, value: 0, x: -4.5, z: 8.2 },
+      { name: 'S2', param: PARAMETERS.SEQ_STEP_1, min: -12, max: 12, value: 3, x: -2.5, z: 8.2 },
+      { name: 'S3', param: PARAMETERS.SEQ_STEP_2, min: -12, max: 12, value: 7, x: -0.5, z: 8.2 },
+      { name: 'S4', param: PARAMETERS.SEQ_STEP_3, min: -12, max: 12, value: 10, x: 1.5, z: 8.2 },
+      { name: 'S5', param: PARAMETERS.SEQ_STEP_4, min: -12, max: 12, value: 0, x: 3.5, z: 8.2 },
+      { name: 'S6', param: PARAMETERS.SEQ_STEP_5, min: -12, max: 12, value: 0, x: 5.5, z: 8.2 },
+      { name: 'S7', param: PARAMETERS.SEQ_STEP_6, min: -12, max: 12, value: 0, x: 7.5, z: 8.2 },
+      { name: 'S8', param: PARAMETERS.SEQ_STEP_7, min: -12, max: 12, value: 0, x: 9.5, z: 8.2 },
       
-      { name: 'TEMPO', param: PARAMETERS.SEQ_TEMPO, min: 40, max: 240, value: 120, x: -7, z: 7.5 },
+      { name: 'TEMPO', param: PARAMETERS.SEQ_TEMPO, min: 40, max: 240, value: 120, x: -7, z: 8.2 },
 
       // EXPERIMENTAL
       { name: 'FM', param: PARAMETERS.OSC_FM_AMT, min: 0, max: 1, value: 0, x: -10.8, z: -2.5, scale: 0.6 },
@@ -454,7 +521,7 @@ export class Synth3D {
     for (let i = 0; i < 8; i++) {
       const led = new THREE.Mesh(ledGeo, ledMat.clone());
       const x = -4.5 + i * 2.0;
-      led.position.set(x, 0.1, 6.5);
+      led.position.set(x, 0.1, 7.3);
       this.uiGroup.add(led);
       this.seqStepLEDs.push(led);
     }
@@ -467,7 +534,7 @@ export class Synth3D {
       metalness: 0.8
     });
     const switchBase = new THREE.Mesh(switchBaseGeo, switchBaseMat);
-    switchBase.position.set(-9, 0, 7.5);
+    switchBase.position.set(-9, 0, 8.2);
     this.uiGroup.add(switchBase);
 
     const switchGeo = new THREE.BoxGeometry(0.6, 0.4, 0.6);
@@ -479,9 +546,23 @@ export class Synth3D {
       metalness: 0.9
     });
     this.seqSwitch = new THREE.Mesh(switchGeo, switchMat);
-    this.seqSwitch.position.set(-9, 0.3, 7.5);
+    this.seqSwitch.position.set(-9, 0.3, 8.2);
     this.uiGroup.add(this.seqSwitch);
-    this.createLabel("SEQ ON", -9, 0.01, 8.6, 20);
+    this.createLabel("SEQ ON", -9, 0.01, 9.3, 20);
+
+    // SEQ Random Button
+    const randBtnGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.2, 32);
+    const randBtnMat = new THREE.MeshPhysicalMaterial({
+      color: 0xff8800,
+      emissive: 0xff8800,
+      emissiveIntensity: 0.5,
+      roughness: 0.2,
+      metalness: 0.8
+    });
+    this.seqRandomButton = new THREE.Mesh(randBtnGeo, randBtnMat);
+    this.seqRandomButton.position.set(-9, 0.1, 6.5);
+    this.uiGroup.add(this.seqRandomButton);
+    this.createLabel("RAND SEQ", -9, 0.01, 7.2, 18, "#ff8800");
 
     // Removed OSC1 Wave Switch - now a knob
 
@@ -558,7 +639,8 @@ export class Synth3D {
     mat.emissiveIntensity = 0.1;
     
     const knob = new THREE.Mesh(geo, mat);
-    knob.position.y = 0;
+    knob.position.y = 0.3;
+    knob.userData.knobIndex = index;
     group.add(knob);
     this.knobData[index].knobMesh = knob;
     this.knobMeshes.push(knob);
@@ -569,9 +651,11 @@ export class Synth3D {
     const notch = new THREE.Mesh(notchGeo, notchMat);
     const s = (config as any).scale || 1.0;
     notch.scale.set(s, s, s);
-    notch.position.set(0, 0.4, 0); 
+    notch.position.set(0, 0.7, 0); 
+    notch.userData.knobIndex = index;
     group.add(notch);
     this.knobData[index].notchMesh = notch;
+    this.knobMeshes.push(notch);
 
     // Add ring indicator
     if ((config as any).hasRing) {
@@ -683,7 +767,28 @@ export class Synth3D {
 
     this.raycaster.setFromCamera(this.pointer, this.camera);
     
-    // Check for switch intersection
+    // 1. Check for section title intersection (Camera Focus)
+    const titleMeshes = this.sectionTitles.map(t => t.mesh).filter(m => m !== undefined);
+    const titleIntersects = this.raycaster.intersectObjects(titleMeshes);
+    if (titleIntersects.length > 0) {
+      const titleData = this.sectionTitles.find(t => t.mesh === titleIntersects[0].object);
+      if (titleData) {
+        this.setCameraView(titleData.view as any);
+        return;
+      }
+    }
+
+    // 2. Check for interactive UI elements (Matrix, Switches, Knobs)
+    
+    // Sequencer Matrix
+    const seqMatrixIntersects = this.raycaster.intersectObject(this.seqMatrixMesh);
+    if (seqMatrixIntersects.length > 0) {
+      this.handleSeqMatrixInteraction(seqMatrixIntersects[0].uv!);
+      this.isDraggingSeqMatrix = true;
+      return;
+    }
+
+    // Switches
     const switchIntersects = this.raycaster.intersectObjects(this.switches.map(s => s.mesh));
     if (switchIntersects.length > 0) {
       const swData = this.switches.find(s => s.mesh === switchIntersects[0].object);
@@ -695,20 +800,61 @@ export class Synth3D {
       return;
     }
     
-    // Check for sequencer switch
+    // Sequencer Switch
     const seqSwitchIntersects = this.raycaster.intersectObject(this.seqSwitch);
     if (seqSwitchIntersects.length > 0) {
       this.seqEnabled = !this.seqEnabled;
       this.host.setParameter(PARAMETERS.SEQ_ENABLE, this.seqEnabled ? 1 : 0);
+      if (!this.seqEnabled) {
+        this.host.setParameter(PARAMETERS.SEQ_TRANSPOSE, 0);
+      }
       return;
     }
 
-    const intersects = this.raycaster.intersectObjects(this.knobMeshes);
+    // Sequencer Random Button
+    const seqRandIntersects = this.raycaster.intersectObject(this.seqRandomButton);
+    if (seqRandIntersects.length > 0) {
+      this.host.randomizeSequencer();
+      // Visual feedback
+      (this.seqRandomButton.material as THREE.MeshPhysicalMaterial).emissiveIntensity = 2.0;
+      setTimeout(() => {
+        (this.seqRandomButton.material as THREE.MeshPhysicalMaterial).emissiveIntensity = 0.5;
+      }, 100);
+      return;
+    }
 
-    if (intersects.length > 0) {
-      this.activeInstanceId = this.knobMeshes.indexOf(intersects[0].object as THREE.Mesh);
+    // Knobs
+    const knobIntersects = this.raycaster.intersectObjects(this.knobMeshes);
+    if (knobIntersects.length > 0) {
+      const hitObject = knobIntersects[0].object;
+      this.activeInstanceId = hitObject.userData.knobIndex;
       this.previousPointerY = event.clientY;
       document.body.style.cursor = 'ns-resize';
+      return;
+    }
+
+    // 3. Check for panel background click to reset camera (ONLY if nothing else hit)
+    if (this.panelMesh) {
+      const panelIntersects = this.raycaster.intersectObject(this.panelMesh);
+      if (panelIntersects.length > 0) {
+        this.setCameraView('main');
+      }
+    }
+  }
+
+  private isDraggingSeqMatrix: boolean = false;
+
+  private handleSeqMatrixInteraction(uv: THREE.Vector2) {
+    const step = Math.floor(uv.x * 8);
+    const y = uv.y;
+    
+    // Top half is Velocity, Bottom half is Gate
+    if (y > 0.5) {
+      const vel = (y - 0.5) * 2;
+      this.host.setParameter(PARAMETERS.SEQ_VEL_0 + step, vel);
+    } else {
+      const gate = y * 2;
+      this.host.setParameter(PARAMETERS.SEQ_GATE_0 + step, gate);
     }
   }
 
@@ -717,8 +863,17 @@ export class Synth3D {
     this.pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     this.pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
     this.raycaster.setFromCamera(this.pointer, this.camera);
-    const intersects = this.raycaster.intersectObjects(this.knobMeshes);
-    const hoveredIndex = intersects.length > 0 ? this.knobMeshes.indexOf(intersects[0].object as THREE.Mesh) : null;
+
+    if (this.isDraggingSeqMatrix) {
+      const intersects = this.raycaster.intersectObject(this.seqMatrixMesh);
+      if (intersects.length > 0) {
+        this.handleSeqMatrixInteraction(intersects[0].uv!);
+      }
+      return;
+    }
+
+    const knobIntersects = this.raycaster.intersectObjects(this.knobMeshes);
+    const hoveredIndex = knobIntersects.length > 0 ? knobIntersects[0].object.userData.knobIndex : null;
 
     if (this.activeInstanceId === null) {
       // Hover effect
@@ -775,6 +930,7 @@ export class Synth3D {
 
   private onPointerUp() {
     this.activeInstanceId = null;
+    this.isDraggingSeqMatrix = false;
     document.body.style.cursor = 'default';
   }
 
@@ -1012,11 +1168,127 @@ export class Synth3D {
     this.wtTexture.needsUpdate = true;
   }
 
-  public setCameraView(view: 'main' | 'osc' | 'filter' | 'seq' | 'fx') {
+  private drawSequencerMatrix() {
+    const ctx = this.seqMatrixCtx;
+    const w = this.seqMatrixCanvas.width;
+    const h = this.seqMatrixCanvas.height;
+
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    ctx.fillRect(0, 0, w, h);
+
+    const stepWidth = w / 8;
+    for (let i = 0; i < 8; i++) {
+      const vel = this.host.paramArray[PARAMETERS.SEQ_VEL_0 + i] ?? 1.0;
+      const gate = this.host.paramArray[PARAMETERS.SEQ_GATE_0 + i] ?? 0.5;
+      const isCurrent = i === this.currentSeqStep && this.seqEnabled;
+
+      // Velocity Bar (Green)
+      ctx.fillStyle = isCurrent ? '#00ff88' : '#00ff8866';
+      ctx.fillRect(i * stepWidth + 10, h / 2 - (vel * h / 2) + 5, stepWidth - 20, vel * h / 2 - 10);
+
+      // Gate Bar (Pink)
+      ctx.fillStyle = isCurrent ? '#ff0088' : '#ff008866';
+      ctx.fillRect(i * stepWidth + 10, h - (gate * h / 2) + 5, stepWidth - 20, gate * h / 2 - 10);
+      
+      // Labels
+      ctx.fillStyle = '#ffffffaa';
+      ctx.font = '10px monospace';
+      ctx.fillText('VEL', i * stepWidth + 12, 15);
+      ctx.fillText('GATE', i * stepWidth + 12, h / 2 + 15);
+    }
+
+    this.seqMatrixTexture.needsUpdate = true;
+  }
+
+  private drawADSRGraph() {
+    const ctx = this.adsrCtx;
+    const w = this.adsrCanvas.width;
+    const h = this.adsrCanvas.height;
+
+    const a = this.host.paramArray[PARAMETERS.ENV_ATTACK];
+    const d = this.host.paramArray[PARAMETERS.ENV_DECAY];
+    const s = this.host.paramArray[PARAMETERS.ENV_SUSTAIN];
+    const r = this.host.paramArray[PARAMETERS.ENV_RELEASE];
+
+    ctx.fillStyle = '#050505';
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.strokeStyle = '#00ff8844';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 0; i < w; i += 32) { ctx.moveTo(i, 0); ctx.lineTo(i, h); }
+    for (let i = 0; i < h; i += 32) { ctx.moveTo(0, i); ctx.lineTo(w, i); }
+    ctx.stroke();
+
+    ctx.strokeStyle = '#00ff88';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    
+    const totalTime = a + d + 1.0 + r; // 1.0 for sustain hold
+    const scale = w / totalTime;
+
+    ctx.moveTo(0, h);
+    ctx.lineTo(a * scale, 0); // Attack
+    ctx.lineTo((a + d) * scale, (1 - s) * h); // Decay
+    ctx.lineTo((a + d + 1.0) * scale, (1 - s) * h); // Sustain
+    ctx.lineTo((a + d + 1.0 + r) * scale, h); // Release
+    ctx.stroke();
+
+    this.adsrTexture.needsUpdate = true;
+  }
+
+  private drawFilterGraph() {
+    const ctx = this.filterGraphCtx;
+    const w = this.filterGraphCanvas.width;
+    const h = this.filterGraphCanvas.height;
+
+    const cutoff = this.host.paramArray[PARAMETERS.FILTER_CUTOFF];
+    const res = this.host.paramArray[PARAMETERS.FILTER_RES];
+
+    ctx.fillStyle = '#050505';
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.strokeStyle = '#00ff8822';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 0; i < w; i += 32) { ctx.moveTo(i, 0); ctx.lineTo(i, h); }
+    for (let i = 0; i < h; i += 32) { ctx.moveTo(0, i); ctx.lineTo(w, i); }
+    ctx.stroke();
+
+    ctx.strokeStyle = '#00ff88';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+
+    const cutoffNorm = Math.log2(cutoff / 20) / Math.log2(20000 / 20);
+    const peakX = cutoffNorm * w;
+    
+    ctx.moveTo(0, h * 0.9);
+    for (let i = 0; i < w; i++) {
+      const x = i;
+      const dist = Math.abs(x - peakX);
+      const resonance = Math.exp(-dist * 0.05) * res * h * 0.5;
+      let y = h * 0.9;
+      if (x < peakX) {
+        y -= resonance;
+      } else {
+        const falloff = Math.exp(-(x - peakX) * 0.1);
+        y = h * 0.9 - (resonance * falloff);
+        y += (1 - falloff) * h * 0.1;
+      }
+      ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    this.filterGraphTexture.needsUpdate = true;
+  }
+
+  public setCameraView(view: 'main' | 'osc' | 'filter' | 'amp' | 'seq' | 'fx') {
     const targets = {
       main: { pos: [0, 14, 16], look: [0, 0, 0] },
       osc: { pos: [-8, 8, 4], look: [-8, 0, 0] },
       filter: { pos: [-3, 8, 4], look: [-3, 0, 0] },
+      amp: { pos: [1, 8, 4], look: [1, 0, 0] },
       seq: { pos: [0, 8, 10], look: [0, 0, 7.5] },
       fx: { pos: [9, 8, 4], look: [9, 0, 0] }
     };
@@ -1070,7 +1342,7 @@ export class Synth3D {
     this.seqEnabled = this.host.paramArray[PARAMETERS.SEQ_ENABLE] > 0.5;
 
     // Animate Sequencer Switch
-    const targetZ = this.seqEnabled ? 7.8 : 7.2;
+    const targetZ = this.seqEnabled ? 8.5 : 7.9;
     this.seqSwitch.position.z += (targetZ - this.seqSwitch.position.z) * 0.2;
     const mat = this.seqSwitch.material as THREE.MeshStandardMaterial;
     mat.emissiveIntensity += ((this.seqEnabled ? 2.0 : 0) - mat.emissiveIntensity) * 0.2;
@@ -1081,6 +1353,9 @@ export class Synth3D {
     // Update LCD Realtime
     this.drawLCD();
     this.drawLFOVisualizer();
+    this.drawSequencerMatrix();
+    this.drawADSRGraph();
+    this.drawFilterGraph();
 
     this.renderer.render(this.scene, this.camera);
   };

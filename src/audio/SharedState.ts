@@ -69,7 +69,24 @@ export const PARAMETERS = {
   LFO1_FADE: 75,        // 0.0 to 5.0 s
   LFO2_MORPH: 76,       // 0.0 to 4.0
   LFO2_FADE: 77,        // 0.0 to 5.0 s
-  CHAOS_AMT: 78         // 0.0 to 1.0
+  CHAOS_AMT: 78,        // 0.0 to 1.0
+  SEQ_VEL_0: 80,
+  SEQ_VEL_1: 81,
+  SEQ_VEL_2: 82,
+  SEQ_VEL_3: 83,
+  SEQ_VEL_4: 84,
+  SEQ_VEL_5: 85,
+  SEQ_VEL_6: 86,
+  SEQ_VEL_7: 87,
+  SEQ_GATE_0: 88,
+  SEQ_GATE_1: 89,
+  SEQ_GATE_2: 90,
+  SEQ_GATE_3: 91,
+  SEQ_GATE_4: 92,
+  SEQ_GATE_5: 93,
+  SEQ_GATE_6: 94,
+  SEQ_GATE_7: 95,
+  SEQ_TRANSPOSE: 96,
 };
 
 export const EVENTS = {
