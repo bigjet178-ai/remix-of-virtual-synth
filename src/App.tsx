@@ -239,9 +239,9 @@ function App() {
   // No longer needed for 2D UI
 
   return (
-    <div className="w-full h-screen bg-obsidian-bg text-zinc-300 flex flex-col font-sans overflow-hidden selection:bg-obsidian-accent selection:text-black">
+    <div className="w-full h-screen text-zinc-300 flex flex-col font-sans overflow-hidden selection:bg-obsidian-accent selection:text-black">
       {/* Atmospheric Background Layer */}
-      <div className="absolute inset-0 atmosphere z-0 pointer-events-none" />
+      <div className="absolute inset-0 atmosphere z-[-1] pointer-events-none" />
 
       {/* Header / Control Panel */}
       <header className="h-20 glass-panel flex items-center justify-between px-10 z-30 shadow-2xl relative">
@@ -406,14 +406,14 @@ function App() {
       {/* 2D UI doesn't need camera controls */}
 
       {/* Main Viewport */}
-      <main className="flex-1 relative bg-obsidian-bg">
+      <main className="flex-1 relative">
         <AnimatePresence>
           {(!isReady || isBooting) && (
             <motion.div 
               initial={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 1, ease: "easeInOut" }}
-              className="absolute inset-0 flex items-center justify-center bg-obsidian-bg z-20"
+              className="absolute inset-0 flex items-center justify-center z-20"
             >
               <div className="relative w-full max-w-3xl px-12">
                 {/* Background Grid for Boot Screen */}

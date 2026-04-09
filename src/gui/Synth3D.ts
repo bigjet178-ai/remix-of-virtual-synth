@@ -328,7 +328,7 @@ export class Synth3D {
     this.createSectionBox(12, -1.5, 2, 6, "MASTER");
     
     // Sequencer Background with Carbon Fiber
-    const seqBgGeo = new THREE.PlaneGeometry(20, 3.5);
+    const seqBgGeo = new THREE.PlaneGeometry(21, 3.5);
     const carbonTexture = this.textureManager.createCarbonFiberTexture();
     const seqBgMat = new THREE.MeshPhysicalMaterial({
       map: carbonTexture,
@@ -336,11 +336,11 @@ export class Synth3D {
       metalness: 0.6
     });
     const seqBg = new THREE.Mesh(seqBgGeo, seqBgMat);
-    seqBg.position.set(0, 0.01, 7.5);
+    seqBg.position.set(0.5, 0.01, 7.5);
     seqBg.rotation.x = -Math.PI / 2;
     this.uiGroup.add(seqBg);
     
-    this.createSectionBox(0, 7.5, 20, 3.5, "SEQUENCER", "seq");
+    this.createSectionBox(0.5, 7.5, 21, 3.5, "SEQUENCER", "seq");
     // Removed redundant FILTER ENV box call here as it's moved up
 
     // CRT Oscilloscope
@@ -380,7 +380,7 @@ export class Synth3D {
     this.createLabel("LFO MODULATION", 5.5, 0.01, -5.5, 24, "#ff0088");
 
     // Sequencer Matrix Display
-    const seqMatrixGeo = new THREE.PlaneGeometry(12, 1.8);
+    const seqMatrixGeo = new THREE.PlaneGeometry(16, 1.8);
     const seqMatrixMat = new THREE.MeshBasicMaterial({ map: this.seqMatrixTexture, transparent: true, opacity: 0.9 });
     this.seqMatrixMesh = new THREE.Mesh(seqMatrixGeo, seqMatrixMat);
     this.seqMatrixMesh.position.set(2.5, 0.02, 6.4);

@@ -1,20 +1,19 @@
 import * as THREE from 'three';
 
 export class TextureManager {
-  private canvas: HTMLCanvasElement;
-  private ctx: CanvasRenderingContext2D;
+  constructor() {}
 
-  constructor() {
-    this.canvas = document.createElement('canvas');
-    this.canvas.width = 512;
-    this.canvas.height = 512;
-    this.ctx = this.canvas.getContext('2d')!;
+  private createCanvas(width: number, height: number): { canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D } {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d')!;
+    return { canvas, ctx };
   }
 
   public createKnobTexture(label: string, value: string): THREE.CanvasTexture {
-    const { ctx, canvas } = this;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+    const { canvas, ctx } = this.createCanvas(512, 512);
+    
     // Background
     ctx.fillStyle = '#1a1a1a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -56,8 +55,7 @@ export class TextureManager {
   }
 
   public createKnurlingNormalMap(): THREE.CanvasTexture {
-    const { ctx, canvas } = this;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const { canvas, ctx } = this.createCanvas(512, 512);
     ctx.fillStyle = '#8080ff'; // Neutral normal color (flat)
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
@@ -72,29 +70,18 @@ export class TextureManager {
   }
 
   public createPanelTexture(): THREE.CanvasTexture {
-    const { ctx, canvas } = this;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const { canvas, ctx } = this.createCanvas(1024, 1024);
 
     // Base color
-    ctx.fillStyle = '#1a1a1a';
+    ctx.fillStyle = '#121212';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Brushed metal effect (horizontal streaks)
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
-    ctx.lineWidth = 1;
-    for (let i = 0; i < 1000; i++) {
-      const y = Math.random() * canvas.height;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(canvas.width, y);
-      ctx.stroke();
-    }
-
-    for (let i = 0; i < 2000; i++) {
+    for (let i = 0; i < 5000; i++) {
       const x = Math.random() * canvas.width;
       const y = Math.random() * canvas.height;
-      const length = 20 + Math.random() * 100;
-      const alpha = 0.02 + Math.random() * 0.05;
+      const length = 50 + Math.random() * 200;
+      const alpha = 0.01 + Math.random() * 0.03;
       
       const grad = ctx.createLinearGradient(x, y, x + length, y);
       grad.addColorStop(0, `rgba(255, 255, 255, 0)`);
@@ -107,34 +94,32 @@ export class TextureManager {
 
     // Add some subtle vertical variations
     const grad2 = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    grad2.addColorStop(0, 'rgba(0,0,0,0.2)');
-    grad2.addColorStop(0.5, 'rgba(255,255,255,0.05)');
-    grad2.addColorStop(1, 'rgba(0,0,0,0.2)');
+    grad2.addColorStop(0, 'rgba(0,0,0,0.4)');
+    grad2.addColorStop(0.5, 'rgba(255,255,255,0.02)');
+    grad2.addColorStop(1, 'rgba(0,0,0,0.4)');
     ctx.fillStyle = grad2;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(1, 1);
     return texture;
   }
 
   public createCarbonFiberTexture(): THREE.CanvasTexture {
-    const { ctx, canvas } = this;
-    const size = 32;
-    canvas.width = size;
-    canvas.height = size;
+    const { canvas, ctx } = this.createCanvas(32, 32);
     
-    ctx.fillStyle = '#111';
-    ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = '#080808';
+    ctx.fillRect(0, 0, 32, 32);
     
-    ctx.fillStyle = '#1a1a1a';
-    ctx.fillRect(0, 0, size / 2, size / 2);
-    ctx.fillRect(size / 2, size / 2, size / 2, size / 2);
+    ctx.fillStyle = '#121212';
+    ctx.fillRect(0, 0, 16, 16);
+    ctx.fillRect(16, 16, 16, 16);
     
-    ctx.fillStyle = '#222';
-    ctx.fillRect(size / 2, 0, size / 2, size / 2);
-    ctx.fillRect(0, size / 2, size / 2, size / 2);
+    ctx.fillStyle = '#181818';
+    ctx.fillRect(16, 0, 16, 16);
+    ctx.fillRect(0, 16, 16, 16);
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.wrapS = THREE.RepeatWrapping;
@@ -144,23 +129,21 @@ export class TextureManager {
   }
 
   public createWoodTexture(): THREE.CanvasTexture {
-    const { ctx, canvas } = this;
-    canvas.width = 512;
-    canvas.height = 512;
+    const { canvas, ctx } = this.createCanvas(512, 512);
     
     // Base wood color
-    ctx.fillStyle = '#4a2c1a';
+    ctx.fillStyle = '#2a1c0a';
     ctx.fillRect(0, 0, 512, 512);
     
     // Grain
     for (let i = 0; i < 1000; i++) {
       const x = Math.random() * 512;
       const y = Math.random() * 512;
-      const w = 1 + Math.random() * 3;
+      const w = 1 + Math.random() * 2;
       const h = 50 + Math.random() * 200;
-      const alpha = 0.05 + Math.random() * 0.1;
+      const alpha = 0.1 + Math.random() * 0.2;
       
-      ctx.fillStyle = `rgba(30, 15, 5, ${alpha})`;
+      ctx.fillStyle = `rgba(10, 5, 0, ${alpha})`;
       ctx.beginPath();
       ctx.ellipse(x, y, w, h, Math.random() * 0.1, 0, Math.PI * 2);
       ctx.fill();
@@ -172,8 +155,8 @@ export class TextureManager {
       const y = Math.random() * 512;
       const r = 10 + Math.random() * 20;
       const grad = ctx.createRadialGradient(x, y, 0, x, y, r);
-      grad.addColorStop(0, 'rgba(20, 10, 5, 0.5)');
-      grad.addColorStop(1, 'rgba(74, 44, 26, 0)');
+      grad.addColorStop(0, 'rgba(10, 5, 0, 0.6)');
+      grad.addColorStop(1, 'rgba(42, 28, 10, 0)');
       ctx.fillStyle = grad;
       ctx.beginPath();
       ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -184,16 +167,13 @@ export class TextureManager {
   }
 
   public createKnobCapTexture(): THREE.CanvasTexture {
-    const { ctx, canvas } = this;
-    canvas.width = 256;
-    canvas.height = 256;
-    ctx.clearRect(0, 0, 256, 256);
+    const { canvas, ctx } = this.createCanvas(256, 256);
     
     // Radial brushed effect
     const centerX = 128;
     const centerY = 128;
     
-    ctx.fillStyle = '#222';
+    ctx.fillStyle = '#151515';
     ctx.beginPath();
     ctx.arc(centerX, centerY, 120, 0, Math.PI * 2);
     ctx.fill();
@@ -201,7 +181,7 @@ export class TextureManager {
     for (let i = 0; i < 360; i += 0.5) {
       const angle = (i * Math.PI) / 180;
       const length = 100 + Math.random() * 20;
-      const alpha = 0.05 + Math.random() * 0.1;
+      const alpha = 0.03 + Math.random() * 0.07;
       
       ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
       ctx.lineWidth = 1;
@@ -214,50 +194,20 @@ export class TextureManager {
     return new THREE.CanvasTexture(canvas);
   }
 
-  public createAnodizedTexture(color: string): THREE.CanvasTexture {
-    const { ctx, canvas } = this;
-    canvas.width = 256;
-    canvas.height = 256;
-    ctx.clearRect(0, 0, 256, 256);
-    
-    // Base color
-    ctx.fillStyle = color;
-    ctx.fillRect(0, 0, 256, 256);
-    
-    // Metallic noise
-    for (let i = 0; i < 5000; i++) {
-      const x = Math.random() * 256;
-      const y = Math.random() * 256;
-      const alpha = Math.random() * 0.1;
-      ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-      ctx.fillRect(x, y, 1, 1);
-    }
-    
-    // Circular brushing
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
-    ctx.lineWidth = 1;
-    for (let i = 0; i < 100; i++) {
-      const r = Math.random() * 128;
-      ctx.beginPath();
-      ctx.arc(128, 128, r, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-    
-    return new THREE.CanvasTexture(canvas);
-  }
-
   public async loadHDRI(url: string, renderer: THREE.WebGLRenderer): Promise<THREE.Texture> {
-    // Fallback if RGBELoader is not available or fails
-    // In a real app we'd import RGBELoader from 'three/examples/jsm/loaders/RGBELoader'
-    // But for this environment, we'll return a generated cube map or similar if possible.
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
     pmremGenerator.compileEquirectangularShader();
     
     // Create a procedural environment map as fallback
     const scene = new THREE.Scene();
-    const light = new THREE.PointLight(0xffffff, 100);
-    light.position.set(5, 5, 5);
-    scene.add(light);
+    const ambient = new THREE.AmbientLight(0xffffff, 1.0);
+    scene.add(ambient);
+    
+    // Soft directional light instead of harsh point light
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    dirLight.position.set(1, 1, 1);
+    scene.add(dirLight);
+
     const envMap = pmremGenerator.fromScene(scene).texture;
     return envMap;
   }
