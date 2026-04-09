@@ -24,23 +24,6 @@ export class Synth3D {
   private knobCount = 0;
   private activeInstanceId: number | null = null;
   private knobMeshes: THREE.Mesh[] = [];
-  private sliderMeshes: THREE.Mesh[] = [];
-  private sliderData: Array<{
-    name: string,
-    paramIndex: number,
-    min: number,
-    max: number,
-    value: number,
-    targetValue: number,
-    x: number,
-    z: number,
-    trackMesh?: THREE.Mesh,
-    handleMesh?: THREE.Mesh,
-    scale?: number
-  }> = [];
-  private activeSliderId: number | null = null;
-  private startY: number = 0;
-  private startValue: number = 0;
   private panelMesh: THREE.Mesh | null = null;
   private dummy = new THREE.Object3D();
   private seqSwitch!: THREE.Mesh;
@@ -64,6 +47,10 @@ export class Synth3D {
   private lfoCtx: CanvasRenderingContext2D;
   private lfoTexture: THREE.CanvasTexture;
   private lfoMesh!: THREE.Mesh;
+  private seqMatrixCanvas: HTMLCanvasElement;
+  private seqMatrixCtx: CanvasRenderingContext2D;
+  private seqMatrixTexture: THREE.CanvasTexture;
+  private seqMatrixMesh!: THREE.Mesh;
   private adsrCanvas: HTMLCanvasElement;
   private adsrCtx: CanvasRenderingContext2D;
   private adsrTexture: THREE.CanvasTexture;
@@ -76,8 +63,8 @@ export class Synth3D {
   private modMatrixCtx: CanvasRenderingContext2D;
   private modMatrixTexture: THREE.CanvasTexture;
   private modMatrixMesh!: THREE.Mesh;
-  private modSources = ["L1", "L2", "F-ENV", "A-ENV", "VEL", "CHAO"];
-  private modTargets = ["PIT", "CUT", "WT", "FX", "RES", "RATE"];
+  private modSources = ["LFO1", "LFO2", "F-ENV", "A-ENV", "VEL", "CHAO"];
+  private modTargets = ["PITCH", "CUTOFF", "WT-POS", "FX-MIX", "RES", "RATE"];
   private modParams = [
     [100, 101, 102, 103, 104, 105],
     [106, 107, 108, 109, 110, 111],
@@ -168,6 +155,13 @@ export class Synth3D {
     this.lfoCtx = this.lfoCanvas.getContext('2d')!;
     this.lfoTexture = new THREE.CanvasTexture(this.lfoCanvas);
 
+    // Sequencer Matrix Setup
+    this.seqMatrixCanvas = document.createElement('canvas');
+    this.seqMatrixCanvas.width = 512;
+    this.seqMatrixCanvas.height = 128;
+    this.seqMatrixCtx = this.seqMatrixCanvas.getContext('2d')!;
+    this.seqMatrixTexture = new THREE.CanvasTexture(this.seqMatrixCanvas);
+
     // ADSR Setup
     this.adsrCanvas = document.createElement('canvas');
     this.adsrCanvas.width = 256;
@@ -257,61 +251,6 @@ export class Synth3D {
     return mesh;
   }
 
-  private createSlider(name: string, x: number, z: number, paramIndex: number, min: number, max: number, scale: number = 1.0) {
-    const group = new THREE.Group();
-    
-    // Track
-    const trackGeo = new THREE.BoxGeometry(0.4 * scale, 0.1 * scale, 2.0 * scale);
-    const trackMat = new THREE.MeshPhysicalMaterial({ 
-      color: 0x111111,
-      roughness: 0.3,
-      metalness: 0.7
-    });
-    const track = new THREE.Mesh(trackGeo, trackMat);
-    group.add(track);
-
-    // Handle
-    const handleGeo = new THREE.BoxGeometry(0.6 * scale, 0.3 * scale, 0.4 * scale);
-    const handleMat = new THREE.MeshPhysicalMaterial({ 
-      color: 0x333333,
-      emissive: 0x00ff88,
-      emissiveIntensity: 0.2,
-      roughness: 0.1,
-      metalness: 0.9
-    });
-    const handle = new THREE.Mesh(handleGeo, handleMat);
-    handle.userData.sliderIndex = this.sliderData.length;
-    group.add(handle);
-
-    group.position.set(x, 0.1, z);
-    this.uiGroup.add(group);
-
-    this.sliderMeshes.push(handle);
-    this.sliderData.push({
-      name,
-      paramIndex,
-      min,
-      max,
-      value: 0,
-      targetValue: 0,
-      x,
-      z,
-      trackMesh: track,
-      handleMesh: handle,
-      scale
-    });
-
-    this.createLabel(name, x, 0.01, z + 1.4 * scale, 18 * scale);
-  }
-
-  private updateSliderInstance(index: number) {
-    const data = this.sliderData[index];
-    if (data.handleMesh) {
-      const normalized = (data.value - data.min) / (data.max - data.min);
-      // Map 0..1 to -0.8..0.8 on Z axis relative to track
-      data.handleMesh.position.z = (normalized - 0.5) * 1.6 * (data.scale || 1.0);
-    }
-  }
   private createSectionBox(x: number, z: number, width: number, height: number, title: string, view?: string) {
     // Title
     const label = this.createLabel(title, x, 0.02, z - height / 2 + 0.4, 42, '#00ff88');
@@ -425,7 +364,7 @@ export class Synth3D {
     seqBg.rotation.x = -Math.PI / 2;
     this.uiGroup.add(seqBg);
     
-    this.createSectionBox(0, 8.5, 22, 4, "SEQUENCER", "seq");
+    this.createSectionBox(0, 8.5, 16, 3, "SEQUENCER", "seq");
     // Removed redundant FILTER ENV box call here as it's moved up
 
     // CRT Oscilloscope
@@ -453,7 +392,7 @@ export class Synth3D {
     this.wtMesh.position.set(0.5, 0.01, 2.8);
     this.wtMesh.rotation.x = -Math.PI / 2;
     this.uiGroup.add(this.wtMesh);
-    // Removed WAVETABLE label
+    // this.createLabel("WAVETABLE", 0.5, 0.01, 1.8, 24, "#00ff88");
 
     // LFO Visualizer
     const lfoGeo = new THREE.PlaneGeometry(3, 1.5);
@@ -464,15 +403,13 @@ export class Synth3D {
     this.uiGroup.add(this.lfoMesh);
     this.createLabel("LFO MODULATION", 9, 0.01, -8, 24, "#ff0088");
 
-    // Sequencer Matrix Display (REPLACED BY SLIDERS)
-    /*
+    // Sequencer Matrix Display
     const seqMatrixGeo = new THREE.PlaneGeometry(16, 1.8);
     const seqMatrixMat = new THREE.MeshBasicMaterial({ map: this.seqMatrixTexture, transparent: true, opacity: 0.9 });
     this.seqMatrixMesh = new THREE.Mesh(seqMatrixGeo, seqMatrixMat);
     this.seqMatrixMesh.position.set(0, 0.02, 8.5);
     this.seqMatrixMesh.rotation.x = -Math.PI / 2;
     this.uiGroup.add(this.seqMatrixMesh);
-    */
 
     // ADSR Graph
     const adsrGeo = new THREE.PlaneGeometry(3, 1.5);
@@ -499,19 +436,7 @@ export class Synth3D {
     this.modMatrixMesh.position.set(-8.5, 0.01, 3.7);
     this.modMatrixMesh.rotation.x = -Math.PI / 2;
     this.uiGroup.add(this.modMatrixMesh);
-    // Removed MOD MATRIX label
-
-    // Sequencer Sliders
-    for (let i = 0; i < 8; i++) {
-      // Pitch Sliders
-      this.createSlider(`P${i+1}`, -7 + i * 2, 7.5, PARAMETERS.SEQ_STEP_0 + i, -12, 12, 0.6);
-      // Velocity Sliders
-      this.createSlider(`V${i+1}`, -7 + i * 2, 9.0, PARAMETERS.SEQ_VEL_0 + i, 0, 1, 0.6);
-      // Gate Sliders
-      this.createSlider(`G${i+1}`, -7 + i * 2, 10.5, PARAMETERS.SEQ_GATE_0 + i, 0, 1, 0.6);
-    }
-    this.createSlider("TEMPO", -9.5, 9.0, PARAMETERS.SEQ_TEMPO, 40, 240, 0.7);
-    this.createSlider("CHAOS", 9.5, 9.0, PARAMETERS.CHAOS_AMT, 0, 1, 0.7);
+    // this.createLabel("MOD MATRIX", -8.5, 0.01, 1.9, 24, "#00ff88");
 
     const knobCapTexture = this.textureManager.createKnobCapTexture();
     const knobMat = new THREE.MeshPhysicalMaterial({
@@ -572,11 +497,7 @@ export class Synth3D {
       
       // LFOs
       { name: 'L1 RATE', param: PARAMETERS.LFO_RATE, min: 0.1, max: 20, value: 2.0, x: 2, z: -3.5 },
-      { name: 'L1 MORPH', param: PARAMETERS.LFO1_MORPH, min: 0, max: 4, value: 0, x: 2, z: -1.5, scale: 0.6 },
-      { name: 'L1 FADE', param: PARAMETERS.LFO1_FADE, min: 0, max: 5, value: 0, x: 2, z: 0.5, scale: 0.6 },
       { name: 'L2 RATE', param: PARAMETERS.LFO2_RATE, min: 0.1, max: 20, value: 1.0, x: 4, z: -3.5 },
-      { name: 'L2 MORPH', param: PARAMETERS.LFO2_MORPH, min: 0, max: 4, value: 0, x: 4, z: -1.5, scale: 0.6 },
-      { name: 'L2 FADE', param: PARAMETERS.LFO2_FADE, min: 0, max: 5, value: 0, x: 4, z: 0.5, scale: 0.6 },
       { name: 'L2 AMT', param: PARAMETERS.LFO2_AMT, min: 0, max: 1, value: 0, x: 3, z: -1.5 },
       
       // FX
@@ -605,32 +526,52 @@ export class Synth3D {
       { name: 'DET', param: PARAMETERS.WT_DETUNE, min: -24, max: 24, value: 0, x: 1, z: 4.6, scale: 0.6 },
       { name: 'LFO', param: PARAMETERS.WT_LFO_AMT, min: 0, max: 1, value: 0.2, x: 2, z: 4.6, scale: 0.6 },
 
+      { name: 'S1', param: PARAMETERS.SEQ_STEP_0, min: -12, max: 12, value: 0, x: -5.5, z: 8.5, scale: 0.8 },
+      { name: 'S2', param: PARAMETERS.SEQ_STEP_1, min: -12, max: 12, value: 3, x: -4, z: 8.5, scale: 0.8 },
+      { name: 'S3', param: PARAMETERS.SEQ_STEP_2, min: -12, max: 12, value: 7, x: -2.5, z: 8.5, scale: 0.8 },
+      { name: 'S4', param: PARAMETERS.SEQ_STEP_3, min: -12, max: 12, value: 10, x: -1, z: 8.5, scale: 0.8 },
+      { name: 'S5', param: PARAMETERS.SEQ_STEP_4, min: -12, max: 12, value: 0, x: 0.5, z: 8.5, scale: 0.8 },
+      { name: 'S6', param: PARAMETERS.SEQ_STEP_5, min: -12, max: 12, value: 0, x: 2, z: 8.5, scale: 0.8 },
+      { name: 'S7', param: PARAMETERS.SEQ_STEP_6, min: -12, max: 12, value: 0, x: 3.5, z: 8.5, scale: 0.8 },
+      { name: 'S8', param: PARAMETERS.SEQ_STEP_7, min: -12, max: 12, value: 0, x: 5, z: 8.5, scale: 0.8 },
+      
+      { name: 'TEMPO', param: PARAMETERS.SEQ_TEMPO, min: 40, max: 240, value: 120, x: -7.5, z: 8.5, scale: 0.6 },
+
+      // EXPERIMENTAL
+      { name: 'CHAOS', param: PARAMETERS.CHAOS_AMT, min: 0, max: 1, value: 0, x: -10.5, z: 8.5, scale: 0.6 },
+      
+      { name: 'L1 MORPH', param: PARAMETERS.LFO1_MORPH, min: 0, max: 4, value: 0, x: 2, z: -1.5, scale: 0.6 },
+      { name: 'L1 FADE', param: PARAMETERS.LFO1_FADE, min: 0, max: 5, value: 0, x: 2, z: 0.5, scale: 0.6 },
+      { name: 'L2 MORPH', param: PARAMETERS.LFO2_MORPH, min: 0, max: 4, value: 0, x: 4, z: -1.5, scale: 0.6 },
+      { name: 'L2 FADE', param: PARAMETERS.LFO2_FADE, min: 0, max: 5, value: 0, x: 4, z: 0.5, scale: 0.6 },
+
+      // MASTER
       { name: 'VOL', param: PARAMETERS.MASTER_VOL, min: 0, max: 1, value: 0.7, x: 10.5, z: -3.5, hasRing: true },
     ];
 
     // SEQ LEDs
-    const ledGeo = new THREE.SphereGeometry(0.1, 16, 16);
+    const ledGeo = new THREE.SphereGeometry(0.08, 16, 16);
     const ledMat = new THREE.MeshStandardMaterial({ color: 0x00ff88, emissive: 0x00ff88, emissiveIntensity: 0 });
     for (let i = 0; i < 8; i++) {
       const led = new THREE.Mesh(ledGeo, ledMat.clone());
-      const x = -7 + i * 2.0;
-      led.position.set(x, 0.1, 8.3);
+      const x = -5.5 + i * 1.5;
+      led.position.set(x, 0.1, 7.5);
       this.uiGroup.add(led);
       this.seqStepLEDs.push(led);
     }
 
     // SEQ ON Switch (Separate from InstancedMesh for custom look)
-    const switchBaseGeo = new THREE.BoxGeometry(1, 0.2, 1.5);
+    const switchBaseGeo = new THREE.BoxGeometry(0.8, 0.2, 1.2);
     const switchBaseMat = new THREE.MeshPhysicalMaterial({ 
       color: 0x111111,
       roughness: 0.2,
       metalness: 0.8
     });
     const switchBase = new THREE.Mesh(switchBaseGeo, switchBaseMat);
-    switchBase.position.set(-10.5, 0, 9.5);
+    switchBase.position.set(-8.5, 0, 8.5);
     this.uiGroup.add(switchBase);
 
-    const switchGeo = new THREE.BoxGeometry(0.6, 0.4, 0.6);
+    const switchGeo = new THREE.BoxGeometry(0.5, 0.4, 0.5);
     const switchMat = new THREE.MeshPhysicalMaterial({ 
       color: 0x333333, 
       emissive: 0x00ff88, 
@@ -639,12 +580,12 @@ export class Synth3D {
       metalness: 0.9
     });
     this.seqSwitch = new THREE.Mesh(switchGeo, switchMat);
-    this.seqSwitch.position.set(-10.5, 0.3, 9.5);
+    this.seqSwitch.position.set(-8.5, 0.3, 8.5);
     this.uiGroup.add(this.seqSwitch);
-    this.createLabel("SEQ ON", -10.5, 0.01, 10.6, 20);
+    this.createLabel("SEQ ON", -8.5, 0.01, 9.4, 16);
 
     // SEQ Random Button
-    const randBtnGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.2, 32);
+    const randBtnGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.2, 32);
     const randBtnMat = new THREE.MeshPhysicalMaterial({
       color: 0xff8800,
       emissive: 0xff8800,
@@ -653,9 +594,9 @@ export class Synth3D {
       metalness: 0.8
     });
     this.seqRandomButton = new THREE.Mesh(randBtnGeo, randBtnMat);
-    this.seqRandomButton.position.set(-10.5, 0.1, 7.8);
+    this.seqRandomButton.position.set(-8.5, 0.1, 7.5);
     this.uiGroup.add(this.seqRandomButton);
-    this.createLabel("RAND SEQ", -10.5, 0.01, 8.5, 18, "#ff8800");
+    this.createLabel("RAND", -8.5, 0.01, 7.8, 14, "#ff8800");
 
     // Removed OSC1 Wave Switch - now a knob
 
@@ -676,8 +617,6 @@ export class Synth3D {
     this.uiGroup.add(fxWTSwitch);
     const fxEnvSwitch = this.createSwitch("FX ENV", 7.2, 2.6, PARAMETERS.FX_ENV_FOLLOW, 0.6);
     this.uiGroup.add(fxEnvSwitch);
-    const fxTrailSwitch = this.createSwitch("FX TRAIL", 7.2, 0.5, PARAMETERS.FX_TRAIL_MODE, 0.6);
-    this.uiGroup.add(fxTrailSwitch);
 
     // Sync Switch
     const syncSwitch = this.createSwitch("SYNC", -10.8, 0.5, PARAMETERS.OSC_SYNC_ENABLE, 0.6);
@@ -708,7 +647,7 @@ export class Synth3D {
       this.uiGroup.add(knobGroup);
       
       this.updateKnobInstance(i);
-      const labelSize = (config as any).scale ? 18 : 24;
+      const labelSize = (config as any).scale ? 12 : 16;
       const labelOffset = (config as any).scale ? 0.7 : 1.1;
       this.createLabel(config.name, config.x, 0.01, config.z + labelOffset, labelSize);
     }
@@ -875,6 +814,14 @@ export class Synth3D {
 
     // 2. Check for interactive UI elements (Matrix, Switches, Knobs)
     
+    // Sequencer Matrix
+    const seqMatrixIntersects = this.raycaster.intersectObject(this.seqMatrixMesh);
+    if (seqMatrixIntersects.length > 0) {
+      this.handleSeqMatrixInteraction(seqMatrixIntersects[0].uv!);
+      this.isDraggingSeqMatrix = true;
+      return;
+    }
+
     // Modulation Matrix
     const modMatrixIntersects = this.raycaster.intersectObject(this.modMatrixMesh);
     if (modMatrixIntersects.length > 0) {
@@ -922,20 +869,7 @@ export class Synth3D {
     if (knobIntersects.length > 0) {
       const hitObject = knobIntersects[0].object;
       this.activeInstanceId = hitObject.userData.knobIndex;
-      this.startY = event.clientY;
-      this.startValue = this.knobData[this.activeInstanceId!].targetValue;
       this.previousPointerY = event.clientY;
-      document.body.style.cursor = 'ns-resize';
-      return;
-    }
-
-    // Sliders
-    const sliderIntersects = this.raycaster.intersectObjects(this.sliderMeshes);
-    if (sliderIntersects.length > 0) {
-      const hitObject = sliderIntersects[0].object;
-      this.activeSliderId = hitObject.userData.sliderIndex;
-      this.startY = event.clientY;
-      this.startValue = this.sliderData[this.activeSliderId!].targetValue;
       document.body.style.cursor = 'ns-resize';
       return;
     }
@@ -992,40 +926,25 @@ export class Synth3D {
     this.pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
     this.raycaster.setFromCamera(this.pointer, this.camera);
 
-    if (this.activeSliderId !== null) {
-      const deltaY = this.startY - event.clientY;
-      const data = this.sliderData[this.activeSliderId];
-      const range = data.max - data.min;
-      const sensitivity = 0.005;
-      let newVal = this.startValue + (deltaY * sensitivity * range);
-      newVal = Math.max(data.min, Math.min(data.max, newVal));
-      data.targetValue = newVal;
-      this.host.setParameter(data.paramIndex, newVal);
+    if (this.isDraggingSeqMatrix) {
+      const intersects = this.raycaster.intersectObject(this.seqMatrixMesh);
+      if (intersects.length > 0) {
+        this.handleSeqMatrixInteraction(intersects[0].uv!);
+      }
       return;
     }
 
-    if (this.activeInstanceId === null) {
-      // Hover effect for knobs
-      const knobIntersects = this.raycaster.intersectObjects(this.knobMeshes);
-      const hoveredKnobIndex = knobIntersects.length > 0 ? knobIntersects[0].object.userData.knobIndex : null;
+    const knobIntersects = this.raycaster.intersectObjects(this.knobMeshes);
+    const hoveredIndex = knobIntersects.length > 0 ? knobIntersects[0].object.userData.knobIndex : null;
 
+    if (this.activeInstanceId === null) {
+      // Hover effect
       this.knobData.forEach((data, i) => {
-        const isHovered = hoveredKnobIndex === i;
+        const isHovered = hoveredIndex === i;
         if (data.knobMesh) {
           const s = (data.scale || 1.0) * (isHovered ? 1.1 : 1.0);
           data.knobMesh.scale.lerp(new THREE.Vector3(s, s, s), 0.2);
           (data.knobMesh.material as THREE.MeshPhysicalMaterial).emissiveIntensity = isHovered ? 0.2 : 0.05;
-        }
-      });
-
-      // Hover effect for sliders
-      const sliderIntersects = this.raycaster.intersectObjects(this.sliderMeshes);
-      const hoveredSliderIndex = sliderIntersects.length > 0 ? sliderIntersects[0].object.userData.sliderIndex : null;
-
-      this.sliderData.forEach((data, i) => {
-        const isHovered = hoveredSliderIndex === i;
-        if (data.handleMesh) {
-          (data.handleMesh.material as THREE.MeshPhysicalMaterial).emissiveIntensity = isHovered ? 0.8 : 0.2;
         }
       });
       return;
@@ -1073,7 +992,6 @@ export class Synth3D {
 
   private onPointerUp() {
     this.activeInstanceId = null;
-    this.activeSliderId = null;
     this.isDraggingSeqMatrix = false;
     document.body.style.cursor = 'default';
   }
@@ -1317,6 +1235,39 @@ export class Synth3D {
     this.wtTexture.needsUpdate = true;
   }
 
+  private drawSequencerMatrix() {
+    const ctx = this.seqMatrixCtx;
+    const w = this.seqMatrixCanvas.width;
+    const h = this.seqMatrixCanvas.height;
+
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    ctx.fillRect(0, 0, w, h);
+
+    const stepWidth = w / 8;
+    for (let i = 0; i < 8; i++) {
+      const vel = this.host.paramArray[PARAMETERS.SEQ_VEL_0 + i] ?? 1.0;
+      const gate = this.host.paramArray[PARAMETERS.SEQ_GATE_0 + i] ?? 0.5;
+      const isCurrent = i === this.currentSeqStep && this.seqEnabled;
+
+      // Velocity Bar (Green)
+      ctx.fillStyle = isCurrent ? '#00ff88' : '#00ff8866';
+      ctx.fillRect(i * stepWidth + 10, h / 2 - (vel * h / 2) + 5, stepWidth - 20, vel * h / 2 - 10);
+
+      // Gate Bar (Pink)
+      ctx.fillStyle = isCurrent ? '#ff0088' : '#ff008866';
+      ctx.fillRect(i * stepWidth + 10, h - (gate * h / 2) + 5, stepWidth - 20, gate * h / 2 - 10);
+      
+      // Labels
+      ctx.fillStyle = '#ffffffaa';
+      ctx.font = '10px monospace';
+      ctx.fillText('VEL', i * stepWidth + 12, 15);
+      ctx.fillText('GATE', i * stepWidth + 12, h / 2 + 15);
+    }
+
+    this.seqMatrixTexture.needsUpdate = true;
+  }
+
   private drawADSRGraph() {
     const ctx = this.adsrCtx;
     const w = this.adsrCanvas.width;
@@ -1438,19 +1389,6 @@ export class Synth3D {
       led.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.2);
     }
 
-    // Smoothly animate all sliders
-    for (let i = 0; i < this.sliderData.length; i++) {
-      const data = this.sliderData[i];
-      if (this.activeSliderId !== i) {
-        data.targetValue = this.host.paramArray[data.paramIndex];
-      }
-      const diff = data.targetValue - data.value;
-      if (Math.abs(diff) > 0.0001 || this.activeSliderId === i) {
-        data.value += diff * 0.2;
-        this.updateSliderInstance(i);
-      }
-    }
-
     // Smoothly animate all knobs towards their target values
     for (let i = 0; i < this.knobCount; i++) {
       const data = this.knobData[i];
@@ -1482,7 +1420,7 @@ export class Synth3D {
     // Update LCD Realtime
     this.drawLCD();
     this.drawLFOVisualizer();
-    // this.drawSequencerMatrix();
+    this.drawSequencerMatrix();
     this.drawADSRGraph();
     this.drawFilterGraph();
     this.drawModMatrix();
