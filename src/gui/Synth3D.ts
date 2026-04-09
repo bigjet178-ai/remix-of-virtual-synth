@@ -88,7 +88,7 @@ export class Synth3D {
     this.textureManager = new TextureManager();
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x0a0a0a);
+    this.scene.background = null;
 
     this.uiGroup = new THREE.Group();
     this.scene.add(this.uiGroup);
@@ -1001,15 +1001,17 @@ export class Synth3D {
     ctx.stroke();
 
     // Current Values (dots)
-    ctx.fillStyle = '#00ff88';
+    ctx.fillStyle = '#00ff00';
     ctx.beginPath();
     ctx.arc(w - 5, (this.lfo1Val * 0.4 + 0.5) * h, 4, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = '#ff0088';
+    ctx.fillStyle = '#00ff00';
+    ctx.globalAlpha = 0.5;
     ctx.beginPath();
     ctx.arc(w - 5, (this.lfo2Val * 0.4 + 0.5) * h, 4, 0, Math.PI * 2);
     ctx.fill();
+    ctx.globalAlpha = 1.0;
 
     this.lfoTexture.needsUpdate = true;
   }
@@ -1023,7 +1025,7 @@ export class Synth3D {
     ctx.fillRect(0, 0, w, h);
 
     // Grid
-    ctx.strokeStyle = '#00ff8822';
+    ctx.strokeStyle = '#00ff0022';
     ctx.lineWidth = 1;
     ctx.beginPath();
     for (let i = 0; i < w; i += 32) { ctx.moveTo(i, 0); ctx.lineTo(i, h); }
@@ -1031,10 +1033,10 @@ export class Synth3D {
     ctx.stroke();
 
     // Waveform
-    ctx.strokeStyle = '#00ff88';
+    ctx.strokeStyle = '#00ff00';
     ctx.lineWidth = 2;
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = '#00ff88';
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = '#00ff00';
     ctx.beginPath();
     const sliceWidth = w / data.length;
     let x = 0;
@@ -1063,21 +1065,21 @@ export class Synth3D {
     ctx.fillStyle = '#0a0a0a';
     ctx.fillRect(0, 0, w, h);
     
-    ctx.fillStyle = '#00ff88';
+    ctx.fillStyle = '#00ff00';
     ctx.font = 'bold 48px "JetBrains Mono", monospace';
     ctx.textAlign = 'center';
     ctx.fillText(this.lcdLine1.toUpperCase(), w / 2, 50);
     
     ctx.font = '32px "JetBrains Mono", monospace';
-    ctx.fillStyle = '#00ff88aa';
+    ctx.fillStyle = '#00ff00aa';
     ctx.fillText(this.lcdLine2.toUpperCase(), w / 2, 90);
 
     // Bar graph
     const val = parseFloat(this.lcdLine2);
     if (!isNaN(val)) {
-      ctx.fillStyle = '#00ff8844';
+      ctx.fillStyle = '#00ff0044';
       ctx.fillRect(w / 4, 105, w / 2, 15);
-      ctx.fillStyle = '#00ff88';
+      ctx.fillStyle = '#00ff00';
       ctx.fillRect(w / 4, 105, (w / 2) * Math.min(1, Math.max(0, val / 100)), 15);
     }
 
@@ -1085,19 +1087,22 @@ export class Synth3D {
     const lfoSize = 40;
     const lfoX = w - lfoSize - 20;
     const lfoY = 20;
-    ctx.strokeStyle = '#00ff8822';
+    ctx.strokeStyle = '#00ff0022';
     ctx.strokeRect(lfoX, lfoY, lfoSize, lfoSize);
     
-    // LFO 1 (Pink)
-    ctx.fillStyle = '#ff0088';
+    // LFO 1
+    ctx.fillStyle = '#00ff00';
     ctx.beginPath();
     ctx.arc(lfoX + lfoSize/2 + this.lfo1Val * (lfoSize/2 - 5), lfoY + lfoSize/3, 4, 0, Math.PI * 2);
     ctx.fill();
     
-    // LFO 2 (Cyan)
-    ctx.fillStyle = '#00ffff';
+    // LFO 2
+    ctx.fillStyle = '#00ff00';
+    ctx.globalAlpha = 0.5;
     ctx.beginPath();
     ctx.arc(lfoX + lfoSize/2 + this.lfo2Val * (lfoSize/2 - 5), lfoY + (lfoSize*2)/3, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1.0;
     ctx.fill();
     
     this.lcdTexture.needsUpdate = true;

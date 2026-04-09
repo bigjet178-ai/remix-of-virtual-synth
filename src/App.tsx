@@ -239,61 +239,64 @@ function App() {
   // No longer needed for 2D UI
 
   return (
-    <div className="w-full h-screen bg-[#0a0a0a] text-zinc-300 flex flex-col font-mono overflow-hidden selection:bg-emerald-500/30">
-      {/* Header */}
-      <header className="h-16 border-b border-zinc-800/50 flex items-center justify-between px-8 bg-[#0d0d0d] z-30 shadow-xl">
-        <div className="flex items-center gap-6">
+    <div className="w-full h-screen bg-obsidian-bg text-zinc-300 flex flex-col font-sans overflow-hidden selection:bg-obsidian-accent selection:text-black">
+      {/* Atmospheric Background Layer */}
+      <div className="absolute inset-0 atmosphere z-0 pointer-events-none" />
+
+      {/* Header / Control Panel */}
+      <header className="h-20 glass-panel flex items-center justify-between px-10 z-30 shadow-2xl relative">
+        <div className="flex items-center gap-10">
           <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <Activity size={16} className="text-emerald-500" />
-              <h1 className="font-bold tracking-[0.2em] text-zinc-100 text-sm">WAM-2.0 CORE</h1>
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 bg-obsidian-accent shadow-[0_0_10px_rgba(0,255,0,0.5)] rounded-full animate-pulse" />
+              <h1 className="font-mono font-bold tracking-[0.3em] text-white text-base">OBSIDIAN-2.0</h1>
             </div>
-            <span className="text-[10px] text-zinc-500 tracking-widest mt-0.5 uppercase">Virtual Analog Synthesis Engine</span>
+            <span className="micro-label mt-1">Advanced Synthesis Engine // Studio Grade</span>
           </div>
           
-          <div className="h-8 w-[1px] bg-zinc-800" />
+          <div className="h-10 w-[1px] bg-white/5" />
           
-          <div className="hidden md:flex items-center gap-8">
-            <div className="flex flex-col gap-1">
-              <span className="text-[9px] text-zinc-500 uppercase tracking-tighter">Engine Status</span>
-              <div className="flex items-center gap-2">
-                <div className={`w-1.5 h-1.5 rounded-full ${isReady ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-zinc-700'}`} />
-                <span className="text-[10px] font-bold uppercase">{isReady ? 'Online' : 'Standby'}</span>
+          <div className="hidden lg:flex items-center gap-10">
+            <div className="flex flex-col gap-1.5">
+              <span className="micro-label">System Status</span>
+              <div className="flex items-center gap-2.5">
+                <div className={`w-1.5 h-1.5 rounded-full ${isReady ? 'bg-obsidian-accent shadow-[0_0_12px_rgba(0,255,0,0.6)]' : 'bg-white/10'}`} />
+                <span className="font-mono text-[11px] font-bold uppercase tracking-wider">{isReady ? 'Ready' : 'Standby'}</span>
               </div>
             </div>
             
-            <div className="flex flex-col gap-1">
-              <span className="text-[9px] text-zinc-500 uppercase tracking-tighter">DSP Load</span>
-              <div className="w-24 h-1.5 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800">
+            <div className="flex flex-col gap-1.5">
+              <span className="micro-label">DSP Load</span>
+              <div className="w-32 h-1 bg-white/5 rounded-full overflow-hidden">
                 <motion.div 
                   initial={{ width: 0 }}
-                  animate={{ width: isReady ? '12%' : '0%' }}
-                  className="h-full bg-emerald-500/50"
+                  animate={{ width: isReady ? '14%' : '0%' }}
+                  className="h-full bg-obsidian-accent/40"
                 />
               </div>
             </div>
           </div>
         </div>
         
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-5">
           {!isReady && !isBooting ? (
             <button 
               onClick={initSynth}
-              className="group flex items-center gap-3 bg-zinc-100 hover:bg-white text-black px-6 py-2 rounded-sm font-bold text-xs transition-all active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+              className="group flex items-center gap-3 bg-white hover:bg-obsidian-accent text-black px-8 py-2.5 rounded-none font-mono font-black text-xs transition-all active:scale-95 shadow-[0_0_30px_rgba(255,255,255,0.05)]"
             >
               <Power size={14} className="group-hover:rotate-12 transition-transform" />
-              INITIALIZE SYSTEM
+              BOOT SYSTEM
             </button>
           ) : isBooting ? (
-            <div className="flex items-center gap-3 bg-zinc-900 px-6 py-2 rounded-sm border border-zinc-800">
-              <div className="w-3 h-3 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-              <span className="text-xs font-bold text-emerald-500">BOOTING... {bootProgress}%</span>
+            <div className="flex items-center gap-4 bg-white/5 px-8 py-2.5 rounded-none border border-white/10">
+              <div className="w-3 h-3 border-2 border-obsidian-accent border-t-transparent rounded-full animate-spin" />
+              <span className="font-mono text-xs font-bold text-obsidian-accent tracking-widest uppercase">Initializing... {bootProgress}%</span>
             </div>
           ) : (
             <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2 text-zinc-400 text-[10px] bg-zinc-900/50 px-4 py-2 rounded-sm border border-zinc-800/50">
-                <KeyboardIcon size={14} className="text-emerald-500" />
-                <span className="uppercase tracking-wider">Keys: A-K / W-U</span>
+              <div className="flex items-center gap-3 text-white/60 font-mono text-[10px] bg-white/5 px-5 py-2.5 rounded-none border border-white/10">
+                <KeyboardIcon size={14} className="text-obsidian-accent" />
+                <span className="uppercase tracking-[0.2em]">Keys: A-K / W-U</span>
               </div>
               
               <div className="relative">
@@ -302,112 +305,98 @@ function App() {
                     setShowPresets(!showPresets);
                     setActiveCategory(null);
                   }}
-                  className="flex items-center gap-2 px-4 py-2 rounded-sm border border-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors bg-zinc-900/50"
+                  className={`flex items-center gap-3 px-5 py-2.5 rounded-none border transition-all font-mono bg-white/5 ${showPresets ? 'border-obsidian-accent text-obsidian-accent' : 'border-white/10 text-white/60 hover:text-white hover:border-white/20'}`}
                 >
-                  <ListMusic size={14} className="text-emerald-500" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest">Presets</span>
+                  <ListMusic size={14} />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Presets</span>
                 </button>
                 
-                {showPresets && (
-                  <div className="absolute top-full right-0 mt-2 w-56 bg-zinc-900 border border-zinc-800 rounded-sm shadow-2xl z-50 flex">
-                    <div className="flex-1 border-r border-zinc-800/50 rounded-sm overflow-hidden">
-                      <div className="px-3 py-2 border-b border-zinc-800 bg-black/50">
-                        <span className="text-[9px] text-zinc-500 uppercase tracking-widest">Categories</span>
-                      </div>
-                      <div className="flex flex-col py-1">
-                        {PRESET_CATEGORIES.map((cat, i) => (
-                          <button
-                            key={i}
-                            onMouseEnter={() => setActiveCategory(cat.category)}
-                            className={`px-3 py-2 text-left text-xs transition-colors flex items-center justify-between ${activeCategory === cat.category ? 'bg-zinc-800 text-emerald-500' : 'text-zinc-300 hover:bg-zinc-800/50'}`}
-                          >
-                            {cat.category}
-                            <ChevronRight size={12} className={activeCategory === cat.category ? 'opacity-100' : 'opacity-0'} />
-                          </button>
-                        ))}
-                        
-                        {userPresets.length > 0 && (
-                          <button
-                            onMouseEnter={() => setActiveCategory('User')}
-                            className={`px-3 py-2 text-left text-xs transition-colors flex items-center justify-between ${activeCategory === 'User' ? 'bg-zinc-800 text-emerald-500' : 'text-zinc-300 hover:bg-zinc-800/50'}`}
-                          >
-                            User Presets
-                            <ChevronRight size={12} className={activeCategory === 'User' ? 'opacity-100' : 'opacity-0'} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {activeCategory && (
-                      <div className="w-48 bg-zinc-900 border border-zinc-800/50 absolute right-full mr-1 top-0 bottom-auto rounded-sm overflow-y-auto max-h-[300px] shadow-2xl">
-                        <div className="px-3 py-2 border-b border-zinc-800 bg-black/50 sticky top-0 z-10">
-                          <span className="text-[9px] text-zinc-500 uppercase tracking-widest">{activeCategory}</span>
+                <AnimatePresence>
+                  {showPresets && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className="absolute top-full right-0 mt-3 w-64 glass-panel rounded-none shadow-2xl z-50 flex flex-col overflow-hidden"
+                    >
+                      <div className="flex-1 overflow-hidden">
+                        <div className="px-4 py-3 border-b border-white/5 bg-white/5">
+                          <span className="micro-label">Sound Library</span>
                         </div>
-                        <div className="flex flex-col py-1">
-                          {activeCategory === 'User' ? (
-                            userPresets.map((preset, i) => (
-                              <div key={i} className="group flex items-center justify-between hover:bg-zinc-800 transition-colors">
+                        <div className="flex flex-col py-2 max-h-[400px] overflow-y-auto">
+                          {PRESET_CATEGORIES.map((cat, i) => (
+                            <div key={i} className="flex flex-col">
+                              <div className="px-4 py-2 bg-white/5">
+                                <span className="micro-label text-[8px] opacity-30">{cat.category}</span>
+                              </div>
+                              {cat.presets.map((preset, pi) => (
                                 <button
+                                  key={pi}
                                   onClick={() => applyPreset(preset)}
-                                  className="flex-1 px-3 py-2 text-left text-xs text-zinc-300 group-hover:text-emerald-500 transition-colors"
+                                  className="px-6 py-2.5 text-left font-mono text-[11px] text-white/60 hover:text-obsidian-accent hover:bg-white/5 transition-all flex items-center justify-between group"
                                 >
                                   {preset.name}
+                                  <ChevronRight size={10} className="opacity-0 group-hover:opacity-100 transition-opacity" />
                                 </button>
-                                <button 
-                                  onClick={(e) => { e.stopPropagation(); deleteUserPreset(i); }}
-                                  className="px-2 py-2 text-zinc-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                                  title="Delete Preset"
-                                >
-                                  <Activity size={10} />
-                                </button>
+                              ))}
+                            </div>
+                          ))}
+                          
+                          {userPresets.length > 0 && (
+                            <div className="flex flex-col border-t border-white/5 mt-2">
+                              <div className="px-4 py-2 bg-white/5">
+                                <span className="micro-label text-[8px] opacity-30">User Presets</span>
                               </div>
-                            ))
-                          ) : (
-                            PRESET_CATEGORIES.find(c => c.category === activeCategory)?.presets.map((preset, i) => (
-                              <button
-                                key={i}
-                                onClick={() => applyPreset(preset)}
-                                className="px-3 py-2 text-left text-xs text-zinc-300 hover:bg-zinc-800 hover:text-emerald-500 transition-colors"
-                              >
-                                {preset.name}
-                              </button>
-                            ))
+                              {userPresets.map((preset, i) => (
+                                <div key={i} className="group flex items-center justify-between hover:bg-white/5 transition-colors">
+                                  <button
+                                    onClick={() => applyPreset(preset)}
+                                    className="flex-1 px-6 py-2.5 text-left font-mono text-[11px] text-white/60 group-hover:text-obsidian-accent transition-colors"
+                                  >
+                                    {preset.name}
+                                  </button>
+                                  <button 
+                                    onClick={(e) => { e.stopPropagation(); deleteUserPreset(i); }}
+                                    className="px-4 py-2.5 text-white/20 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                                  >
+                                    <Activity size={10} />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
                           )}
                         </div>
                       </div>
-                    )}
-                  </div>
-                )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
-              <button 
-                onClick={() => setSaveModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-sm border border-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors bg-zinc-900/50"
-                title="Save Current Preset"
-              >
-                <Volume2 size={14} className="text-emerald-500" />
-                <span className="text-[10px] font-bold uppercase tracking-widest">Save</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setSaveModalOpen(true)}
+                  className="p-2.5 rounded-none border border-white/10 text-white/40 hover:text-white hover:border-white/20 transition-all bg-white/5"
+                  title="Save Current Preset"
+                >
+                  <Volume2 size={16} />
+                </button>
 
-              <button 
-                onClick={() => hostRef.current?.randomize()}
-                className="flex items-center gap-2 px-4 py-2 rounded-sm border border-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors bg-zinc-900/50"
-                title="Randomize Parameters"
-              >
-                <Activity size={14} className="text-emerald-500" />
-                <span className="text-[10px] font-bold uppercase tracking-widest">Random</span>
-              </button>
+                <button 
+                  onClick={() => hostRef.current?.randomize()}
+                  className="p-2.5 rounded-none border border-white/10 text-white/40 hover:text-white hover:border-white/20 transition-all bg-white/5"
+                  title="Randomize Parameters"
+                >
+                  <Activity size={16} />
+                </button>
 
-              <button 
-                onClick={toggleRecording}
-                className={`flex items-center gap-2 px-4 py-2 rounded-sm border transition-all ${isRecording ? 'bg-red-500/20 border-red-500 text-red-500 animate-pulse' : 'bg-zinc-900/50 border-zinc-800 text-zinc-400 hover:text-zinc-100'}`}
-              >
-                <div className={`w-2 h-2 rounded-full ${isRecording ? 'bg-red-500' : 'bg-zinc-600'}`} />
-                <span className="text-[10px] font-bold uppercase tracking-widest">{isRecording ? 'STOP REC' : 'RECORD'}</span>
-              </button>
-              <button className="p-2 text-zinc-500 hover:text-zinc-100 transition-colors">
-                <Settings size={18} />
-              </button>
+                <button 
+                  onClick={toggleRecording}
+                  className={`flex items-center gap-3 px-5 py-2.5 rounded-none border transition-all font-mono ${isRecording ? 'bg-red-500/10 border-red-500 text-red-500 shadow-[0_0_20px_rgba(239,68,68,0.2)]' : 'bg-white/5 border-white/10 text-white/40 hover:text-white hover:border-white/20'}`}
+                >
+                  <div className={`w-2 h-2 rounded-full ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-white/20'}`} />
+                  <span className="text-[10px] font-bold uppercase tracking-[0.2em]">{isRecording ? 'STOP' : 'REC'}</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -417,63 +406,64 @@ function App() {
       {/* 2D UI doesn't need camera controls */}
 
       {/* Main Viewport */}
-      <main className="flex-1 relative bg-[#050505]">
+      <main className="flex-1 relative bg-obsidian-bg">
         <AnimatePresence>
           {(!isReady || isBooting) && (
             <motion.div 
               initial={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.8, ease: "easeInOut" }}
-              className="absolute inset-0 flex items-center justify-center bg-[#0a0a0a] z-20"
+              transition={{ duration: 1, ease: "easeInOut" }}
+              className="absolute inset-0 flex items-center justify-center bg-obsidian-bg z-20"
             >
-              <div className="relative w-full max-w-2xl px-12">
+              <div className="relative w-full max-w-3xl px-12">
                 {/* Background Grid for Boot Screen */}
-                <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
-                     style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+                <div className="absolute inset-0 opacity-[0.05] pointer-events-none" 
+                     style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
                 
                 <div className="relative z-10 flex flex-col items-center text-center">
                   <motion.div
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="mb-12"
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="mb-16"
                   >
-                    <div className="w-20 h-20 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center mb-6 mx-auto shadow-2xl">
-                      <Cpu size={40} className={isBooting ? "text-emerald-500 animate-pulse" : "text-zinc-600"} />
+                    <div className="w-24 h-24 rounded-none bg-white/5 border border-white/10 flex items-center justify-center mb-8 mx-auto shadow-2xl relative group">
+                      <div className="absolute inset-0 bg-obsidian-accent/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <Cpu size={48} className={isBooting ? "text-obsidian-accent animate-pulse" : "text-white/20"} />
                     </div>
-                    <h2 className="text-3xl font-bold text-zinc-100 tracking-tighter mb-2">SYSTEM INITIALIZATION</h2>
-                    <p className="text-zinc-500 text-sm max-w-sm mx-auto leading-relaxed">
-                      High-fidelity WebAssembly DSP engine requires user interaction to allocate audio buffers and initialize 3D context.
+                    <h2 className="font-mono text-4xl font-black text-white tracking-[-0.05em] mb-4 uppercase">Obsidian OS v2.0</h2>
+                    <p className="font-mono text-white/40 text-[11px] max-w-sm mx-auto leading-relaxed tracking-widest uppercase">
+                      Hardware Abstraction Layer // Neural DSP Core // WebAssembly Runtime
                     </p>
                   </motion.div>
 
                   {!isBooting ? (
                     <button 
                       onClick={initSynth}
-                      className="group relative w-full max-w-xs py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-sm font-black text-sm tracking-[0.3em] transition-all overflow-hidden shadow-[0_0_40px_rgba(16,185,129,0.2)]"
+                      className="group relative w-full max-w-xs py-5 bg-white hover:bg-obsidian-accent text-black rounded-none font-mono font-black text-xs tracking-[0.4em] transition-all overflow-hidden shadow-[0_0_50px_rgba(255,255,255,0.05)]"
                     >
-                      <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                      <span className="relative z-10">START ENGINE</span>
+                      <span className="relative z-10">INITIALIZE CORE</span>
                     </button>
                   ) : (
-                    <div className="w-full max-w-md space-y-4">
-                      <div className="flex justify-between text-[10px] uppercase tracking-widest text-zinc-500 font-bold">
-                        <span>Loading DSP Modules</span>
-                        <span>{bootProgress}%</span>
+                    <div className="w-full max-w-md space-y-6">
+                      <div className="flex justify-between font-mono text-[10px] uppercase tracking-[0.3em] text-white/30 font-bold">
+                        <span>Loading Modules</span>
+                        <span className="text-obsidian-accent">{bootProgress}%</span>
                       </div>
-                      <div className="h-1 w-full bg-zinc-900 rounded-full overflow-hidden border border-zinc-800">
+                      <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
                         <motion.div 
                           initial={{ width: 0 }}
                           animate={{ width: `${bootProgress}%` }}
-                          className="h-full bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.8)]"
+                          className="h-full bg-obsidian-accent shadow-[0_0_20px_rgba(0,255,0,0.4)]"
                         />
                       </div>
-                      <div className="flex gap-2 justify-center">
-                        {[0, 1, 2].map(i => (
+                      <div className="flex gap-3 justify-center">
+                        {[0, 1, 2, 3].map(i => (
                           <motion.div
                             key={i}
-                            animate={{ opacity: [0.3, 1, 0.3] }}
-                            transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
-                            className="w-1 h-1 bg-emerald-500 rounded-full"
+                            animate={{ scale: [1, 1.5, 1], opacity: [0.2, 1, 0.2] }}
+                            transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.2 }}
+                            className="w-1.5 h-1.5 bg-obsidian-accent rounded-full"
                           />
                         ))}
                       </div>
@@ -492,51 +482,51 @@ function App() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+              className="absolute inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4"
             >
               <motion.div 
-                initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                className="bg-zinc-900 border border-zinc-800 p-6 rounded-sm w-full max-w-md shadow-2xl"
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="glass-panel p-10 rounded-none w-full max-w-lg shadow-2xl"
               >
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 bg-emerald-500/10 rounded-sm">
-                    <Volume2 size={20} className="text-emerald-500" />
+                <div className="flex items-center gap-5 mb-10">
+                  <div className="p-3 bg-obsidian-accent/10 border border-obsidian-accent/20">
+                    <Volume2 size={24} className="text-obsidian-accent" />
                   </div>
                   <div>
-                    <h2 className="text-sm font-bold tracking-widest uppercase text-zinc-100">Save Preset</h2>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-tighter mt-1">Capture current engine state</p>
+                    <h2 className="font-mono text-lg font-bold tracking-[0.2em] uppercase text-white">Commit to Flash</h2>
+                    <p className="micro-label mt-1">Permanent memory allocation</p>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex flex-col gap-2">
-                    <label className="text-[9px] text-zinc-500 uppercase tracking-widest ml-1">Preset Name</label>
+                <div className="space-y-6">
+                  <div className="flex flex-col gap-3">
+                    <label className="micro-label ml-1">Identifier</label>
                     <input 
                       autoFocus
                       type="text" 
                       value={newPresetName}
                       onChange={(e) => setNewPresetName(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && saveCurrentPreset()}
-                      placeholder="Enter name..."
-                      className="w-full bg-black border border-zinc-800 px-4 py-3 text-xs text-zinc-200 focus:outline-none focus:border-emerald-500/50 transition-colors rounded-sm"
+                      placeholder="PRESET_NAME_01"
+                      className="w-full bg-white/5 border border-white/10 px-6 py-4 font-mono text-xs text-white focus:outline-none focus:border-obsidian-accent/50 transition-all rounded-none"
                     />
                   </div>
 
-                  <div className="flex gap-3 pt-4">
+                  <div className="flex gap-4 pt-6">
                     <button 
                       onClick={() => setSaveModalOpen(false)}
-                      className="flex-1 px-4 py-3 border border-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors text-[10px] font-bold uppercase tracking-widest rounded-sm"
+                      className="flex-1 px-6 py-4 border border-white/10 text-white/40 hover:text-white hover:bg-white/5 transition-all font-mono text-[10px] font-bold uppercase tracking-[0.2em] rounded-none"
                     >
-                      Cancel
+                      Abort
                     </button>
                     <button 
                       onClick={saveCurrentPreset}
                       disabled={!newPresetName.trim()}
-                      className="flex-1 px-4 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:hover:bg-emerald-600 text-white transition-colors text-[10px] font-bold uppercase tracking-widest rounded-sm shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+                      className="flex-1 px-6 py-4 bg-white hover:bg-obsidian-accent disabled:opacity-20 text-black transition-all font-mono text-[10px] font-bold uppercase tracking-[0.2em] rounded-none shadow-[0_0_30px_rgba(255,255,255,0.1)]"
                     >
-                      Save Preset
+                      Commit
                     </button>
                   </div>
                 </div>
@@ -550,19 +540,19 @@ function App() {
         
         {/* UI Overlays */}
         {isReady && (
-          <div className="absolute bottom-8 left-8 right-8 flex justify-between items-end pointer-events-none z-10">
-            <div className="flex flex-col gap-4">
-              <div className="bg-black/60 backdrop-blur-md border border-white/5 p-4 rounded-sm flex flex-col gap-2 w-48">
+          <div className="absolute bottom-10 left-10 right-10 flex justify-between items-end pointer-events-none z-10">
+            <div className="flex flex-col gap-6">
+              <div className="glass-panel p-6 rounded-none flex flex-col gap-4 w-64">
                 <div className="flex justify-between items-center">
-                  <span className="text-[9px] uppercase tracking-widest text-zinc-500">Master Out</span>
-                  <Volume2 size={12} className="text-emerald-500" />
+                  <span className="micro-label">Output Monitor</span>
+                  <div className="w-2 h-2 bg-obsidian-accent rounded-full shadow-[0_0_8px_rgba(0,255,0,0.5)]" />
                 </div>
-                <div className="flex gap-0.5 h-8 items-end">
-                  {Array.from({ length: 24 }).map((_, i) => (
+                <div className="flex gap-1 h-12 items-end">
+                  {Array.from({ length: 32 }).map((_, i) => (
                     <div 
                       key={i} 
-                      className="flex-1 bg-zinc-800 rounded-t-[1px]" 
-                      style={{ height: `${Math.random() * 40 + 10}%` }} 
+                      className="flex-1 bg-white/10" 
+                      style={{ height: `${Math.random() * 60 + 20}%` }} 
                     />
                   ))}
                 </div>
@@ -570,33 +560,33 @@ function App() {
             </div>
             
             <div className="text-right">
-              <div className="text-[10px] text-zinc-500 uppercase tracking-[0.4em] mb-1">Architecture</div>
-              <div className="text-xs font-bold text-zinc-100 tracking-widest">WASM-DSP / THREE.JS / REACT</div>
+              <div className="micro-label mb-2">System Architecture</div>
+              <div className="font-mono text-[11px] font-bold text-white/80 tracking-[0.3em] uppercase">WASM-DSP // THREE.JS // REACT</div>
             </div>
           </div>
         )}
       </main>
       
       {/* Footer / Status Bar */}
-      <footer className="h-8 bg-[#080808] border-t border-zinc-900 flex items-center justify-between px-8 text-[9px] text-zinc-600 uppercase tracking-widest">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <div className="w-1 h-1 rounded-full bg-emerald-500" />
-            <span>Audio: 48kHz / 24-bit</span>
+      <footer className="h-10 bg-obsidian-bg border-t border-white/5 flex items-center justify-between px-10 text-[9px] font-mono text-white/30 uppercase tracking-[0.2em]">
+        <div className="flex items-center gap-10">
+          <div className="flex items-center gap-3">
+            <div className="w-1 h-1 rounded-full bg-obsidian-accent" />
+            <span>48.0 KHZ / 32-BIT FLOAT</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-1 h-1 rounded-full bg-emerald-500" />
-            <span>Latency: 2.4ms</span>
+          <div className="flex items-center gap-3">
+            <div className="w-1 h-1 rounded-full bg-obsidian-accent" />
+            <span>BUFFER: 128 SAMPLES</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-1 h-1 rounded-full bg-emerald-500" />
-            <span>Octave: {octave} (Z/X)</span>
+          <div className="flex items-center gap-3">
+            <div className="w-1 h-1 rounded-full bg-obsidian-accent" />
+            <span>OCTAVE: {octave}</span>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <span>© 2026 WAM-2.0 VIRTUAL ANALOG</span>
-          <div className="w-[1px] h-3 bg-zinc-800" />
-          <span>Build 07.04.26</span>
+        <div className="flex items-center gap-6">
+          <span>© 2026 OBSIDIAN STUDIO</span>
+          <div className="w-[1px] h-4 bg-white/5" />
+          <span className="text-obsidian-accent/50">BUILD_REV.090426</span>
         </div>
       </footer>
     </div>
@@ -604,3 +594,4 @@ function App() {
 }
 
 export default App;
+;
