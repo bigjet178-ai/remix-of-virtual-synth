@@ -280,7 +280,7 @@ class SynthProcessor extends AudioWorkletProcessor {
   // Sequencer
   private seqStep: number = 0;
   private seqFrameCounter: number = 0;
-  private seqNotes: number[] = new Array(8).fill(-1); // Track notes triggered by sequencer
+  private seqNotes: number[] = new Array(16).fill(-1); // Track notes triggered by sequencer
   private lastSentStep: number = -1;
   private lastModRate: number = 0;
 
@@ -391,6 +391,25 @@ class SynthProcessor extends AudioWorkletProcessor {
     const framesPerStep = Math.floor((60 / tempo) * sampleRate / 4); // 16th notes
     const lfoSyncEnabled = p[PARAMETERS.LFO_SYNC_ENABLE] > 0.5;
 
+    const stepParams = [
+      PARAMETERS.SEQ_STEP_0, PARAMETERS.SEQ_STEP_1, PARAMETERS.SEQ_STEP_2, PARAMETERS.SEQ_STEP_3,
+      PARAMETERS.SEQ_STEP_4, PARAMETERS.SEQ_STEP_5, PARAMETERS.SEQ_STEP_6, PARAMETERS.SEQ_STEP_7,
+      PARAMETERS.SEQ_STEP_8, PARAMETERS.SEQ_STEP_9, PARAMETERS.SEQ_STEP_10, PARAMETERS.SEQ_STEP_11,
+      PARAMETERS.SEQ_STEP_12, PARAMETERS.SEQ_STEP_13, PARAMETERS.SEQ_STEP_14, PARAMETERS.SEQ_STEP_15
+    ];
+    const velParams = [
+      PARAMETERS.SEQ_VEL_0, PARAMETERS.SEQ_VEL_1, PARAMETERS.SEQ_VEL_2, PARAMETERS.SEQ_VEL_3,
+      PARAMETERS.SEQ_VEL_4, PARAMETERS.SEQ_VEL_5, PARAMETERS.SEQ_VEL_6, PARAMETERS.SEQ_VEL_7,
+      PARAMETERS.SEQ_VEL_8, PARAMETERS.SEQ_VEL_9, PARAMETERS.SEQ_VEL_10, PARAMETERS.SEQ_VEL_11,
+      PARAMETERS.SEQ_VEL_12, PARAMETERS.SEQ_VEL_13, PARAMETERS.SEQ_VEL_14, PARAMETERS.SEQ_VEL_15
+    ];
+    const gateParams = [
+      PARAMETERS.SEQ_GATE_0, PARAMETERS.SEQ_GATE_1, PARAMETERS.SEQ_GATE_2, PARAMETERS.SEQ_GATE_3,
+      PARAMETERS.SEQ_GATE_4, PARAMETERS.SEQ_GATE_5, PARAMETERS.SEQ_GATE_6, PARAMETERS.SEQ_GATE_7,
+      PARAMETERS.SEQ_GATE_8, PARAMETERS.SEQ_GATE_9, PARAMETERS.SEQ_GATE_10, PARAMETERS.SEQ_GATE_11,
+      PARAMETERS.SEQ_GATE_12, PARAMETERS.SEQ_GATE_13, PARAMETERS.SEQ_GATE_14, PARAMETERS.SEQ_GATE_15
+    ];
+
     for (let i = 0; i < numFrames; ++i) {
       this.frameCount++;
       
@@ -398,7 +417,7 @@ class SynthProcessor extends AudioWorkletProcessor {
         this.seqFrameCounter++;
 
         // Gate logic
-        const currentGate = p[PARAMETERS.SEQ_GATE_0 + this.seqStep] ?? 0.5;
+        const currentGate = p[gateParams[this.seqStep]] ?? 0.5;
         const gateFrames = Math.floor(framesPerStep * currentGate);
         if (this.seqFrameCounter === gateFrames) {
           if (this.seqNotes[this.seqStep] !== -1) {
@@ -415,9 +434,9 @@ class SynthProcessor extends AudioWorkletProcessor {
           }
 
           this.seqFrameCounter = 0;
-          this.seqStep = (this.seqStep + 1) % 8;
-          const stepOffset = p[PARAMETERS.SEQ_STEP_0 + this.seqStep];
-          const velocity = p[PARAMETERS.SEQ_VEL_0 + this.seqStep] ?? 1.0;
+          this.seqStep = (this.seqStep + 1) % 16;
+          const stepOffset = p[stepParams[this.seqStep]];
+          const velocity = p[velParams[this.seqStep]] ?? 1.0;
           const transpose = p[PARAMETERS.SEQ_TRANSPOSE] || 0;
           const note = 60 + stepOffset + transpose;
           this.seqNotes[this.seqStep] = note;
@@ -437,10 +456,10 @@ class SynthProcessor extends AudioWorkletProcessor {
         // Sync LFO rate to tempo (e.g., 1 LFO cycle per beat)
         this.lfo1.rate = (tempo / 60) * modRateFactor;
       } else {
-        this.lfo1.rate = p[PARAMETERS.LFO_RATE] * modRateFactor;
+        this.lfo1.rate = Math.max(0.1, p[PARAMETERS.LFO_RATE] * modRateFactor);
       }
       this.lfo1.morph = p[PARAMETERS.LFO1_MORPH] || 0;
-      this.lfo2.rate = p[PARAMETERS.LFO2_RATE] * modRateFactor;
+      this.lfo2.rate = Math.max(0.1, p[PARAMETERS.LFO2_RATE] * modRateFactor);
       this.lfo2.morph = p[PARAMETERS.LFO2_MORPH] || 0;
 
       const lfo1Val = this.lfo1.process();
@@ -469,12 +488,6 @@ class SynthProcessor extends AudioWorkletProcessor {
       // Effects
       this.delay.time += (p[PARAMETERS.DELAY_TIME] - this.delay.time) * 0.005;
       this.delay.feedback += (p[PARAMETERS.DELAY_FEEDBACK] - this.delay.feedback) * 0.005;
-      
-      const trailMode = p[PARAMETERS.FX_TRAIL_MODE] > 0.5;
-      if (!trailMode && !anyVoiceActive) {
-        this.delay.clear();
-        this.reverb.clear();
-      }
       
       let delayMix = p[PARAMETERS.DELAY_MIX];
       let reverbMix = p[PARAMETERS.REVERB_MIX] + (totalModFX / this.maxVoices);

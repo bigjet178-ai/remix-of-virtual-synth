@@ -31,6 +31,14 @@ export const PARAMETERS = {
   SEQ_STEP_5: 30,
   SEQ_STEP_6: 31,
   SEQ_STEP_7: 32,
+  SEQ_STEP_8: 140,
+  SEQ_STEP_9: 141,
+  SEQ_STEP_10: 142,
+  SEQ_STEP_11: 143,
+  SEQ_STEP_12: 144,
+  SEQ_STEP_13: 145,
+  SEQ_STEP_14: 146,
+  SEQ_STEP_15: 147,
   FILTER_ATTACK: 33,
   FILTER_DECAY: 34,
   FILTER_SUSTAIN: 35,
@@ -70,7 +78,6 @@ export const PARAMETERS = {
   LFO2_MORPH: 76,       // 0.0 to 4.0
   LFO2_FADE: 77,        // 0.0 to 5.0 s
   CHAOS_AMT: 78,        // 0.0 to 1.0
-  FX_TRAIL_MODE: 79,    // 0: Off (No trail), 1: On (Trail)
   SEQ_VEL_0: 80,
   SEQ_VEL_1: 81,
   SEQ_VEL_2: 82,
@@ -79,6 +86,14 @@ export const PARAMETERS = {
   SEQ_VEL_5: 85,
   SEQ_VEL_6: 86,
   SEQ_VEL_7: 87,
+  SEQ_VEL_8: 148,
+  SEQ_VEL_9: 149,
+  SEQ_VEL_10: 150,
+  SEQ_VEL_11: 151,
+  SEQ_VEL_12: 152,
+  SEQ_VEL_13: 153,
+  SEQ_VEL_14: 154,
+  SEQ_VEL_15: 155,
   SEQ_GATE_0: 88,
   SEQ_GATE_1: 89,
   SEQ_GATE_2: 90,
@@ -87,6 +102,14 @@ export const PARAMETERS = {
   SEQ_GATE_5: 93,
   SEQ_GATE_6: 94,
   SEQ_GATE_7: 95,
+  SEQ_GATE_8: 156,
+  SEQ_GATE_9: 157,
+  SEQ_GATE_10: 158,
+  SEQ_GATE_11: 159,
+  SEQ_GATE_12: 160,
+  SEQ_GATE_13: 161,
+  SEQ_GATE_14: 162,
+  SEQ_GATE_15: 163,
   SEQ_TRANSPOSE: 96,
 
   // Modulation Matrix (6x6)
@@ -142,7 +165,7 @@ export const EVENTS = {
   STOP_RECORD: 4
 };
 
-export const MAX_PARAMETERS = 160;
+export const MAX_PARAMETERS = 170;
 
 /**
  * Lock-free Single-Producer Single-Consumer (SPSC) Ring Buffer

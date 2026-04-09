@@ -91,7 +91,6 @@ function App() {
           if (synth3DRef.current) synth3DRef.current.updateSeqStep(msg.step);
         } else if (msg.type === 'scope') {
           if (synth3DRef.current) {
-            synth3DRef.current.updateScope(msg.data);
             if (msg.lfo1 !== undefined) synth3DRef.current.updateLFOs(msg.lfo1, msg.lfo2);
           }
         }

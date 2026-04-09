@@ -268,6 +268,16 @@ export class SynthHost {
     this.setParameter(PARAMETERS.WT_POS, Math.random());
     this.setParameter(PARAMETERS.SUB_OSC_WAVE, Math.floor(Math.random() * 4));
     this.setParameter(PARAMETERS.NOISE_MIX, style === 'noise' ? 0.5 : Math.random() * 0.1);
+
+    // 5. Randomize Mod Matrix (6x6 = 36 connections)
+    // Only randomize a few connections to keep it usable
+    for (let i = 0; i < 6; i++) {
+        for (let j = 0; j < 6; j++) {
+            const paramIdx = 100 + i * 6 + j;
+            // 20% chance to set a modulation connection
+            this.setParameter(paramIdx, Math.random() > 0.8 ? (Math.random() * 2 - 1) : 0);
+        }
+    }
   }
 
   public randomizeSequencer(): void {
@@ -281,19 +291,38 @@ export class SynthHost {
     ];
     const scale = scales[Math.floor(Math.random() * scales.length)];
     
-    for (let i = 0; i < 8; i++) {
+    const stepParams = [
+      PARAMETERS.SEQ_STEP_0, PARAMETERS.SEQ_STEP_1, PARAMETERS.SEQ_STEP_2, PARAMETERS.SEQ_STEP_3,
+      PARAMETERS.SEQ_STEP_4, PARAMETERS.SEQ_STEP_5, PARAMETERS.SEQ_STEP_6, PARAMETERS.SEQ_STEP_7,
+      PARAMETERS.SEQ_STEP_8, PARAMETERS.SEQ_STEP_9, PARAMETERS.SEQ_STEP_10, PARAMETERS.SEQ_STEP_11,
+      PARAMETERS.SEQ_STEP_12, PARAMETERS.SEQ_STEP_13, PARAMETERS.SEQ_STEP_14, PARAMETERS.SEQ_STEP_15
+    ];
+    const velParams = [
+      PARAMETERS.SEQ_VEL_0, PARAMETERS.SEQ_VEL_1, PARAMETERS.SEQ_VEL_2, PARAMETERS.SEQ_VEL_3,
+      PARAMETERS.SEQ_VEL_4, PARAMETERS.SEQ_VEL_5, PARAMETERS.SEQ_VEL_6, PARAMETERS.SEQ_VEL_7,
+      PARAMETERS.SEQ_VEL_8, PARAMETERS.SEQ_VEL_9, PARAMETERS.SEQ_VEL_10, PARAMETERS.SEQ_VEL_11,
+      PARAMETERS.SEQ_VEL_12, PARAMETERS.SEQ_VEL_13, PARAMETERS.SEQ_VEL_14, PARAMETERS.SEQ_VEL_15
+    ];
+    const gateParams = [
+      PARAMETERS.SEQ_GATE_0, PARAMETERS.SEQ_GATE_1, PARAMETERS.SEQ_GATE_2, PARAMETERS.SEQ_GATE_3,
+      PARAMETERS.SEQ_GATE_4, PARAMETERS.SEQ_GATE_5, PARAMETERS.SEQ_GATE_6, PARAMETERS.SEQ_GATE_7,
+      PARAMETERS.SEQ_GATE_8, PARAMETERS.SEQ_GATE_9, PARAMETERS.SEQ_GATE_10, PARAMETERS.SEQ_GATE_11,
+      PARAMETERS.SEQ_GATE_12, PARAMETERS.SEQ_GATE_13, PARAMETERS.SEQ_GATE_14, PARAMETERS.SEQ_GATE_15
+    ];
+
+    for (let i = 0; i < 16; i++) {
       // Step pitch (-12 to 12)
       const octave = Math.floor(Math.random() * 3) - 1; // -1, 0, or 1
       const note = scale[Math.floor(Math.random() * scale.length)];
       let pitch = octave * 12 + note;
       pitch = Math.max(-12, Math.min(12, pitch));
-      this.setParameter(PARAMETERS.SEQ_STEP_0 + i, pitch);
+      this.setParameter(stepParams[i], pitch);
       
       // Velocity (0.2 to 1.0)
-      this.setParameter(PARAMETERS.SEQ_VEL_0 + i, 0.2 + Math.random() * 0.8);
+      this.setParameter(velParams[i], 0.2 + Math.random() * 0.8);
       
       // Gate (0.1 to 2.0)
-      this.setParameter(PARAMETERS.SEQ_GATE_0 + i, 0.1 + Math.random() * 1.9);
+      this.setParameter(gateParams[i], 0.1 + Math.random() * 1.9);
     }
   }
 }

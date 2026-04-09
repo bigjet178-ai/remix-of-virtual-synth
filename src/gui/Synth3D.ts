@@ -31,10 +31,10 @@ export class Synth3D {
   private seqEnabled: boolean = false;
   private seqStepLEDs: THREE.Mesh[] = [];
   private currentSeqStep: number = -1;
-  private scopeCanvas: HTMLCanvasElement;
-  private scopeCtx: CanvasRenderingContext2D;
-  private scopeTexture: THREE.CanvasTexture;
-  private scopeMesh!: THREE.Mesh;
+  // private scopeCanvas: HTMLCanvasElement;
+  // private scopeCtx: CanvasRenderingContext2D;
+  // private scopeTexture: THREE.CanvasTexture;
+  // private scopeMesh!: THREE.Mesh;
   private lcdCanvas: HTMLCanvasElement;
   private lcdCtx: CanvasRenderingContext2D;
   private lcdTexture: THREE.CanvasTexture;
@@ -63,8 +63,8 @@ export class Synth3D {
   private modMatrixCtx: CanvasRenderingContext2D;
   private modMatrixTexture: THREE.CanvasTexture;
   private modMatrixMesh!: THREE.Mesh;
-  private modSources = ["LFO1", "LFO2", "F-ENV", "A-ENV", "VEL", "CHAO"];
-  private modTargets = ["PITCH", "CUTOFF", "WT-POS", "FX-MIX", "RES", "RATE"];
+  private modSources = ["L1", "L2", "F-ENV", "A-ENV", "VEL", "CHAO"];
+  private modTargets = ["PIT", "CUT", "WT", "FX", "RES", "RAT"];
   private modParams = [
     [100, 101, 102, 103, 104, 105],
     [106, 107, 108, 109, 110, 111],
@@ -128,11 +128,11 @@ export class Synth3D {
     this.pointer = new THREE.Vector2();
 
     // Scope Setup
-    this.scopeCanvas = document.createElement('canvas');
-    this.scopeCanvas.width = 256;
-    this.scopeCanvas.height = 128;
-    this.scopeCtx = this.scopeCanvas.getContext('2d')!;
-    this.scopeTexture = new THREE.CanvasTexture(this.scopeCanvas);
+    // this.scopeCanvas = document.createElement('canvas');
+    // this.scopeCanvas.width = 256;
+    // this.scopeCanvas.height = 128;
+    // this.scopeCtx = this.scopeCanvas.getContext('2d')!;
+    // this.scopeTexture = new THREE.CanvasTexture(this.scopeCanvas);
 
     // LCD Setup
     this.lcdCanvas = document.createElement('canvas');
@@ -367,14 +367,14 @@ export class Synth3D {
     this.createSectionBox(0, 8.5, 16, 3, "SEQUENCER", "seq");
     // Removed redundant FILTER ENV box call here as it's moved up
 
-    // CRT Oscilloscope
-    const scopeGeo = new THREE.PlaneGeometry(3, 1.5);
-    const scopeMat = new THREE.MeshBasicMaterial({ map: this.scopeTexture });
-    this.scopeMesh = new THREE.Mesh(scopeGeo, scopeMat);
-    this.scopeMesh.position.set(-9, 0.01, -7);
-    this.scopeMesh.rotation.x = -Math.PI / 2;
-    this.uiGroup.add(this.scopeMesh);
-    this.createLabel("OSCILLOSCOPE", -9, 0.01, -8, 24, "#00ff88");
+    // // CRT Oscilloscope
+    // const scopeGeo = new THREE.PlaneGeometry(3, 1.5);
+    // const scopeMat = new THREE.MeshBasicMaterial({ map: this.scopeTexture });
+    // this.scopeMesh = new THREE.Mesh(scopeGeo, scopeMat);
+    // this.scopeMesh.position.set(-9, 0.01, -7);
+    // this.scopeMesh.rotation.x = -Math.PI / 2;
+    // this.uiGroup.add(this.scopeMesh);
+    // this.createLabel("OSCILLOSCOPE", -9, 0.01, -8, 24, "#00ff88");
 
     // LCD Display
     const lcdGeo = new THREE.PlaneGeometry(4, 1);
@@ -526,16 +526,24 @@ export class Synth3D {
       { name: 'DET', param: PARAMETERS.WT_DETUNE, min: -24, max: 24, value: 0, x: 1, z: 4.6, scale: 0.6 },
       { name: 'LFO', param: PARAMETERS.WT_LFO_AMT, min: 0, max: 1, value: 0.2, x: 2, z: 4.6, scale: 0.6 },
 
-      { name: 'S1', param: PARAMETERS.SEQ_STEP_0, min: -12, max: 12, value: 0, x: -5.5, z: 8.5, scale: 0.8 },
-      { name: 'S2', param: PARAMETERS.SEQ_STEP_1, min: -12, max: 12, value: 3, x: -4, z: 8.5, scale: 0.8 },
-      { name: 'S3', param: PARAMETERS.SEQ_STEP_2, min: -12, max: 12, value: 7, x: -2.5, z: 8.5, scale: 0.8 },
-      { name: 'S4', param: PARAMETERS.SEQ_STEP_3, min: -12, max: 12, value: 10, x: -1, z: 8.5, scale: 0.8 },
-      { name: 'S5', param: PARAMETERS.SEQ_STEP_4, min: -12, max: 12, value: 0, x: 0.5, z: 8.5, scale: 0.8 },
-      { name: 'S6', param: PARAMETERS.SEQ_STEP_5, min: -12, max: 12, value: 0, x: 2, z: 8.5, scale: 0.8 },
-      { name: 'S7', param: PARAMETERS.SEQ_STEP_6, min: -12, max: 12, value: 0, x: 3.5, z: 8.5, scale: 0.8 },
-      { name: 'S8', param: PARAMETERS.SEQ_STEP_7, min: -12, max: 12, value: 0, x: 5, z: 8.5, scale: 0.8 },
+      { name: 'S1', param: PARAMETERS.SEQ_STEP_0, min: -12, max: 12, value: 0, x: -7, z: 10.0, scale: 0.6 },
+      { name: 'S2', param: PARAMETERS.SEQ_STEP_1, min: -12, max: 12, value: 3, x: -6, z: 10.0, scale: 0.6 },
+      { name: 'S3', param: PARAMETERS.SEQ_STEP_2, min: -12, max: 12, value: 7, x: -5, z: 10.0, scale: 0.6 },
+      { name: 'S4', param: PARAMETERS.SEQ_STEP_3, min: -12, max: 12, value: 10, x: -4, z: 10.0, scale: 0.6 },
+      { name: 'S5', param: PARAMETERS.SEQ_STEP_4, min: -12, max: 12, value: 0, x: -3, z: 10.0, scale: 0.6 },
+      { name: 'S6', param: PARAMETERS.SEQ_STEP_5, min: -12, max: 12, value: 0, x: -2, z: 10.0, scale: 0.6 },
+      { name: 'S7', param: PARAMETERS.SEQ_STEP_6, min: -12, max: 12, value: 0, x: -1, z: 10.0, scale: 0.6 },
+      { name: 'S8', param: PARAMETERS.SEQ_STEP_7, min: -12, max: 12, value: 0, x: 0, z: 10.0, scale: 0.6 },
+      { name: 'S9', param: PARAMETERS.SEQ_STEP_8, min: -12, max: 12, value: 0, x: 1, z: 10.0, scale: 0.6 },
+      { name: 'S10', param: PARAMETERS.SEQ_STEP_9, min: -12, max: 12, value: 0, x: 2, z: 10.0, scale: 0.6 },
+      { name: 'S11', param: PARAMETERS.SEQ_STEP_10, min: -12, max: 12, value: 0, x: 3, z: 10.0, scale: 0.6 },
+      { name: 'S12', param: PARAMETERS.SEQ_STEP_11, min: -12, max: 12, value: 0, x: 4, z: 10.0, scale: 0.6 },
+      { name: 'S13', param: PARAMETERS.SEQ_STEP_12, min: -12, max: 12, value: 0, x: 5, z: 10.0, scale: 0.6 },
+      { name: 'S14', param: PARAMETERS.SEQ_STEP_13, min: -12, max: 12, value: 0, x: 6, z: 10.0, scale: 0.6 },
+      { name: 'S15', param: PARAMETERS.SEQ_STEP_14, min: -12, max: 12, value: 0, x: 7, z: 10.0, scale: 0.6 },
+      { name: 'S16', param: PARAMETERS.SEQ_STEP_15, min: -12, max: 12, value: 0, x: 8, z: 10.0, scale: 0.6 },
       
-      { name: 'TEMPO', param: PARAMETERS.SEQ_TEMPO, min: 40, max: 240, value: 120, x: -7.5, z: 8.5, scale: 0.6 },
+      { name: 'TEMPO', param: PARAMETERS.SEQ_TEMPO, min: 40, max: 240, value: 120, x: -9, z: 10.0, scale: 0.6 },
 
       // EXPERIMENTAL
       { name: 'CHAOS', param: PARAMETERS.CHAOS_AMT, min: 0, max: 1, value: 0, x: -10.5, z: 8.5, scale: 0.6 },
@@ -552,10 +560,10 @@ export class Synth3D {
     // SEQ LEDs
     const ledGeo = new THREE.SphereGeometry(0.08, 16, 16);
     const ledMat = new THREE.MeshStandardMaterial({ color: 0x00ff88, emissive: 0x00ff88, emissiveIntensity: 0 });
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 16; i++) {
       const led = new THREE.Mesh(ledGeo, ledMat.clone());
-      const x = -5.5 + i * 1.5;
-      led.position.set(x, 0.1, 7.5);
+      const x = -7 + i * 1.0;
+      led.position.set(x, 0.1, 8.0);
       this.uiGroup.add(led);
       this.seqStepLEDs.push(led);
     }
@@ -568,7 +576,7 @@ export class Synth3D {
       metalness: 0.8
     });
     const switchBase = new THREE.Mesh(switchBaseGeo, switchBaseMat);
-    switchBase.position.set(-8.5, 0, 8.5);
+    switchBase.position.set(-9.5, 0, 8.5);
     this.uiGroup.add(switchBase);
 
     const switchGeo = new THREE.BoxGeometry(0.5, 0.4, 0.5);
@@ -580,9 +588,9 @@ export class Synth3D {
       metalness: 0.9
     });
     this.seqSwitch = new THREE.Mesh(switchGeo, switchMat);
-    this.seqSwitch.position.set(-8.5, 0.3, 8.5);
+    this.seqSwitch.position.set(-9.5, 0.3, 8.5);
     this.uiGroup.add(this.seqSwitch);
-    this.createLabel("SEQ ON", -8.5, 0.01, 9.4, 16);
+    this.createLabel("SEQ ON", -9.5, 0.01, 9.4, 16);
 
     // SEQ Random Button
     const randBtnGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.2, 32);
@@ -594,9 +602,9 @@ export class Synth3D {
       metalness: 0.8
     });
     this.seqRandomButton = new THREE.Mesh(randBtnGeo, randBtnMat);
-    this.seqRandomButton.position.set(-8.5, 0.1, 7.5);
+    this.seqRandomButton.position.set(-9.5, 0.1, 7.5);
     this.uiGroup.add(this.seqRandomButton);
-    this.createLabel("RAND", -8.5, 0.01, 7.8, 14, "#ff8800");
+    this.createLabel("RAND", -9.5, 0.01, 7.8, 14, "#ff8800");
 
     // Removed OSC1 Wave Switch - now a knob
 
@@ -886,7 +894,7 @@ export class Synth3D {
   private isDraggingSeqMatrix: boolean = false;
 
   private handleSeqMatrixInteraction(uv: THREE.Vector2) {
-    const step = Math.floor(uv.x * 8);
+    const step = Math.floor(uv.x * 16);
     const y = uv.y;
     
     // Top half is Velocity, Bottom half is Gate
@@ -1020,6 +1028,8 @@ export class Synth3D {
     
     this.lfoHistory2.push(lfo2);
     if (this.lfoHistory2.length > 100) this.lfoHistory2.shift();
+
+    this.drawLFOVisualizer();
   }
 
   private drawLFOVisualizer() {
@@ -1076,42 +1086,6 @@ export class Synth3D {
     ctx.globalAlpha = 1.0;
 
     this.lfoTexture.needsUpdate = true;
-  }
-
-  public updateScope(data: Float32Array) {
-    const ctx = this.scopeCtx;
-    const w = this.scopeCanvas.width;
-    const h = this.scopeCanvas.height;
-
-    ctx.fillStyle = '#050505';
-    ctx.fillRect(0, 0, w, h);
-
-    // Grid
-    ctx.strokeStyle = '#00ff0022';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    for (let i = 0; i < w; i += 32) { ctx.moveTo(i, 0); ctx.lineTo(i, h); }
-    for (let i = 0; i < h; i += 32) { ctx.moveTo(0, i); ctx.lineTo(w, i); }
-    ctx.stroke();
-
-    // Waveform
-    ctx.strokeStyle = '#00ff00';
-    ctx.lineWidth = 2;
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = '#00ff00';
-    ctx.beginPath();
-    const sliceWidth = w / data.length;
-    let x = 0;
-    for (let i = 0; i < data.length; i++) {
-      const v = data[i] * 0.5 + 0.5;
-      const y = v * h;
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-      x += sliceWidth;
-    }
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-    this.scopeTexture.needsUpdate = true;
   }
 
   public updateLCD(line1: string, line2: string) {
@@ -1241,28 +1215,37 @@ export class Synth3D {
     const h = this.seqMatrixCanvas.height;
 
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    ctx.fillStyle = '#050505';
     ctx.fillRect(0, 0, w, h);
 
-    const stepWidth = w / 8;
-    for (let i = 0; i < 8; i++) {
+    const cols = 16;
+    const stepWidth = w / cols;
+    
+    // Draw grid
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= cols; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * stepWidth, 0);
+        ctx.lineTo(i * stepWidth, h);
+        ctx.stroke();
+    }
+
+    for (let i = 0; i < cols; i++) {
       const vel = this.host.paramArray[PARAMETERS.SEQ_VEL_0 + i] ?? 1.0;
       const gate = this.host.paramArray[PARAMETERS.SEQ_GATE_0 + i] ?? 0.5;
       const isCurrent = i === this.currentSeqStep && this.seqEnabled;
 
-      // Velocity Bar (Green)
-      ctx.fillStyle = isCurrent ? '#00ff88' : '#00ff8866';
-      ctx.fillRect(i * stepWidth + 10, h / 2 - (vel * h / 2) + 5, stepWidth - 20, vel * h / 2 - 10);
+      // Draw active step highlight
+      if (isCurrent) {
+          ctx.fillStyle = '#ffffff22';
+          ctx.fillRect(i * stepWidth, 0, stepWidth, h);
+      }
 
-      // Gate Bar (Pink)
-      ctx.fillStyle = isCurrent ? '#ff0088' : '#ff008866';
-      ctx.fillRect(i * stepWidth + 10, h - (gate * h / 2) + 5, stepWidth - 20, gate * h / 2 - 10);
-      
-      // Labels
-      ctx.fillStyle = '#ffffffaa';
-      ctx.font = '10px monospace';
-      ctx.fillText('VEL', i * stepWidth + 12, 15);
-      ctx.fillText('GATE', i * stepWidth + 12, h / 2 + 15);
+      // Draw step (Piano roll style)
+      ctx.fillStyle = gate > 0.5 ? '#ff0088' : '#333';
+      const barHeight = vel * (h - 10);
+      ctx.fillRect(i * stepWidth + 2, h - barHeight - 5, stepWidth - 4, barHeight);
     }
 
     this.seqMatrixTexture.needsUpdate = true;
