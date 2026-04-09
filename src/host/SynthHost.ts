@@ -87,6 +87,19 @@ export class SynthHost {
     this.setParameter(PARAMETERS.TS_LEVEL, 0.5);
     this.setParameter(PARAMETERS.TS_MIX, 0.0);
 
+    this.setParameter(PARAMETERS.FX_SRC_OSC1, 1.0);
+    this.setParameter(PARAMETERS.FX_SRC_OSC2, 1.0);
+    this.setParameter(PARAMETERS.FX_SRC_WT, 1.0);
+    this.setParameter(PARAMETERS.FX_ENV_FOLLOW, 0.0);
+
+    this.setParameter(PARAMETERS.OSC_FM_AMT, 0.0);
+    this.setParameter(PARAMETERS.OSC_SYNC_ENABLE, 0.0);
+    this.setParameter(PARAMETERS.LFO1_MORPH, 0.0);
+    this.setParameter(PARAMETERS.LFO1_FADE, 0.0);
+    this.setParameter(PARAMETERS.LFO2_MORPH, 0.0);
+    this.setParameter(PARAMETERS.LFO2_FADE, 0.0);
+    this.setParameter(PARAMETERS.CHAOS_AMT, 0.0);
+
     this.setParameter(PARAMETERS.MASTER_VOL, 0.7);
   }
 
@@ -164,5 +177,70 @@ export class SynthHost {
   
   public getAudioContext(): AudioContext {
     return this.ctx;
+  }
+
+  public randomize(): void {
+    // Pick a "style" for randomization to ensure more cohesive results
+    const styles = ['bass', 'lead', 'pad', 'pluck', 'noise'];
+    const style = styles[Math.floor(Math.random() * styles.length)];
+
+    // 1. Tuning & Oscillators (The most important for "in tune" sounds)
+    // Quantize OSC2 Detune to semitones or small chorus detune
+    const detuneChoices = [0, 0, 0, 0, 7, 12, -12, 19, 24]; // Octaves, fifths, or unison
+    const baseDetune = detuneChoices[Math.floor(Math.random() * detuneChoices.length)];
+    const fineDetune = (Math.random() * 2 - 1) * 0.15; // Small chorus effect
+    this.setParameter(PARAMETERS.OSC2_DETUNE, baseDetune + fineDetune);
+
+    this.setParameter(PARAMETERS.OSC1_WAVE, Math.random());
+    this.setParameter(PARAMETERS.OSC1_MIX, 0.4 + Math.random() * 0.4); // Always keep OSC1 audible
+    this.setParameter(PARAMETERS.OSC2_WAVE, Math.random());
+    this.setParameter(PARAMETERS.OSC2_MIX, Math.random() * 0.6);
+    
+    // Limit Chaos to very small amounts unless it's a "noise" style
+    const maxChaos = style === 'noise' ? 2.0 : 0.05;
+    this.setParameter(PARAMETERS.CHAOS_AMT, Math.random() * maxChaos);
+    
+    // Limit FM to prevent extreme disharmony
+    this.setParameter(PARAMETERS.OSC_FM_AMT, Math.random() * 0.2);
+    this.setParameter(PARAMETERS.OSC_SYNC_ENABLE, Math.random() > 0.85 ? 1 : 0);
+
+    // 2. Filter & Envelopes
+    if (style === 'bass') {
+      this.setParameter(PARAMETERS.FILTER_CUTOFF, 100 + Math.random() * 800);
+      this.setParameter(PARAMETERS.ENV_ATTACK, 0.001 + Math.random() * 0.05);
+      this.setParameter(PARAMETERS.ENV_RELEASE, 0.1 + Math.random() * 0.5);
+      this.setParameter(PARAMETERS.SUB_OSC_MIX, 0.3 + Math.random() * 0.5);
+    } else if (style === 'pad') {
+      this.setParameter(PARAMETERS.FILTER_CUTOFF, 400 + Math.random() * 2000);
+      this.setParameter(PARAMETERS.ENV_ATTACK, 0.5 + Math.random() * 2.0);
+      this.setParameter(PARAMETERS.ENV_RELEASE, 1.0 + Math.random() * 3.0);
+      this.setParameter(PARAMETERS.SUB_OSC_MIX, Math.random() * 0.2);
+    } else {
+      this.setParameter(PARAMETERS.FILTER_CUTOFF, 500 + Math.random() * 4000);
+      this.setParameter(PARAMETERS.ENV_ATTACK, 0.01 + Math.random() * 0.2);
+      this.setParameter(PARAMETERS.ENV_RELEASE, 0.2 + Math.random() * 1.0);
+      this.setParameter(PARAMETERS.SUB_OSC_MIX, Math.random() * 0.3);
+    }
+
+    this.setParameter(PARAMETERS.FILTER_RES, Math.random() * 0.7);
+    this.setParameter(PARAMETERS.FILTER_ENV_DEPTH, Math.random() * 4000);
+    this.setParameter(PARAMETERS.ENV_SUSTAIN, 0.2 + Math.random() * 0.8);
+    
+    // 3. Modulation
+    this.setParameter(PARAMETERS.LFO_RATE, 0.1 + Math.random() * 8.0);
+    this.setParameter(PARAMETERS.LFO1_MORPH, Math.random() * 4.0);
+    this.setParameter(PARAMETERS.LFO2_RATE, 0.1 + Math.random() * 8.0);
+    this.setParameter(PARAMETERS.LFO2_MORPH, Math.random() * 4.0);
+    
+    // Ensure LFO2 Pitch modulation is subtle
+    this.setParameter(PARAMETERS.LFO2_AMT, Math.random() * 0.2);
+
+    // 4. Effects & Extras
+    this.setParameter(PARAMETERS.DELAY_MIX, Math.random() * 0.4);
+    this.setParameter(PARAMETERS.REVERB_MIX, 0.1 + Math.random() * 0.4);
+    this.setParameter(PARAMETERS.WT_MIX, Math.random() * 0.7);
+    this.setParameter(PARAMETERS.WT_POS, Math.random());
+    this.setParameter(PARAMETERS.SUB_OSC_WAVE, Math.floor(Math.random() * 4));
+    this.setParameter(PARAMETERS.NOISE_MIX, style === 'noise' ? 0.5 : Math.random() * 0.1);
   }
 }

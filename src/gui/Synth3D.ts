@@ -15,6 +15,7 @@ export class Synth3D {
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
   private textureManager: TextureManager;
+  private uiGroup: THREE.Group;
 
   private raycaster: THREE.Raycaster;
   private pointer: THREE.Vector2;
@@ -40,6 +41,16 @@ export class Synth3D {
   private wtCtx: CanvasRenderingContext2D;
   private wtTexture: THREE.CanvasTexture;
   private wtMesh!: THREE.Mesh;
+  private lfoCanvas: HTMLCanvasElement;
+  private lfoCtx: CanvasRenderingContext2D;
+  private lfoTexture: THREE.CanvasTexture;
+  private lfoMesh!: THREE.Mesh;
+  private lfo1Val: number = 0;
+  private lfo2Val: number = 0;
+  private lfoHistory1: number[] = new Array(100).fill(0);
+  private lfoHistory2: number[] = new Array(100).fill(0);
+  private lcdLine1: string = "SYSTEM READY";
+  private lcdLine2: string = "WAM-2.0 CORE";
   private knobData: Array<{ 
     name: string,
     paramIndex: number, 
@@ -63,6 +74,9 @@ export class Synth3D {
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x0a0a0a);
+
+    this.uiGroup = new THREE.Group();
+    this.scene.add(this.uiGroup);
 
     this.camera = new THREE.PerspectiveCamera(40, container.clientWidth / container.clientHeight, 0.1, 100);
     this.camera.position.set(0, 14, 16);
@@ -105,6 +119,13 @@ export class Synth3D {
     this.wtCtx = this.wtCanvas.getContext('2d')!;
     this.wtTexture = new THREE.CanvasTexture(this.wtCanvas);
 
+    // LFO Visualizer Setup
+    this.lfoCanvas = document.createElement('canvas');
+    this.lfoCanvas.width = 256;
+    this.lfoCanvas.height = 128;
+    this.lfoCtx = this.lfoCanvas.getContext('2d')!;
+    this.lfoTexture = new THREE.CanvasTexture(this.lfoCanvas);
+
     this.initEnvironment();
     this.buildUI();
     this.bindEvents();
@@ -126,7 +147,7 @@ export class Synth3D {
 
     const knobLight = new THREE.PointLight(0xffffff, 5.0, 50);
     knobLight.position.set(0, 10, 0);
-    this.scene.add(knobLight);
+    this.uiGroup.add(knobLight);
 
     try {
       const hdriUrl = 'https://raw.githubusercontent.com/mrdoob/three.js/r128/examples/textures/equirectangular/royal_esplanade_1k.hdr';
@@ -136,6 +157,9 @@ export class Synth3D {
     } catch (e) {
       console.warn("HDRI failed to load, using fallback lighting.");
     }
+
+    // Apply requested shift: up by 100px (~2 units), left by 60px (~1.2 units)
+    this.uiGroup.position.set(-1.2, 0, -2.0);
   }
 
   private createLabel(text: string, x: number, y: number, z: number, size: number = 36, color: string = '#aaaaaa') {
@@ -166,12 +190,20 @@ export class Synth3D {
     const mesh = new THREE.Mesh(geo, material);
     mesh.position.set(x, y, z);
     mesh.rotation.x = -Math.PI / 2;
-    this.scene.add(mesh);
+    this.uiGroup.add(mesh);
   }
 
   private createSectionBox(x: number, z: number, width: number, height: number, title: string) {
     // Title
     this.createLabel(title, x, 0.02, z - height / 2 + 0.4, 42, '#00ff88');
+
+    // Subtle Frame
+    const frameGeo = new THREE.EdgesGeometry(new THREE.PlaneGeometry(width - 0.2, height - 0.2));
+    const frameMat = new THREE.LineBasicMaterial({ color: 0x333333, transparent: true, opacity: 0.5 });
+    const frame = new THREE.LineSegments(frameGeo, frameMat);
+    frame.position.set(x, 0.01, z);
+    frame.rotation.x = -Math.PI / 2;
+    this.uiGroup.add(frame);
   }
 
   private switches: Array<{ mesh: THREE.Mesh, paramIndex: number, value: number }> = [];
@@ -183,19 +215,29 @@ export class Synth3D {
     });
   }
 
-  private createSwitch(label: string, x: number, z: number, paramIndex: number): THREE.Group {
+  private createSwitch(label: string, x: number, z: number, paramIndex: number, scale: number = 1.0): THREE.Group {
     const group = new THREE.Group();
-    const switchBaseGeo = new THREE.BoxGeometry(1, 0.2, 1.5);
-    const switchBaseMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+    const switchBaseGeo = new THREE.BoxGeometry(1 * scale, 0.2 * scale, 1.5 * scale);
+    const switchBaseMat = new THREE.MeshPhysicalMaterial({ 
+      color: 0x111111,
+      roughness: 0.2,
+      metalness: 0.8
+    });
     const switchBase = new THREE.Mesh(switchBaseGeo, switchBaseMat);
     group.add(switchBase);
 
-    const switchGeo = new THREE.BoxGeometry(0.6, 0.4, 0.6);
-    const switchMat = new THREE.MeshStandardMaterial({ color: 0x333333, emissive: 0x00ff88, emissiveIntensity: 0 });
+    const switchGeo = new THREE.BoxGeometry(0.6 * scale, 0.4 * scale, 0.6 * scale);
+    const switchMat = new THREE.MeshPhysicalMaterial({ 
+      color: 0x333333, 
+      emissive: 0x00ff88, 
+      emissiveIntensity: 0,
+      roughness: 0.1,
+      metalness: 0.9
+    });
     const sw = new THREE.Mesh(switchGeo, switchMat);
-    sw.position.set(0, 0.3, 0);
+    sw.position.set(0, 0.3 * scale, 0);
     group.add(sw);
-    this.createLabel(label, 0, 0.01, 1.1, 20);
+    this.createLabel(label, 0, 0.01, 1.1 * scale, 20 * scale);
     
     group.position.set(x, 0, z);
     this.switches.push({ mesh: sw, paramIndex, value: 0 });
@@ -203,56 +245,100 @@ export class Synth3D {
   }
 
   private buildUI() {
-    // Main Chassis - Reduced width
-    const panelGeo = new THREE.BoxGeometry(22, 0.8, 14);
+    // Main Chassis
+    const panelGeo = new THREE.BoxGeometry(24, 0.8, 20);
+    const panelTexture = this.textureManager.createPanelTexture();
     const panelMat = new THREE.MeshPhysicalMaterial({ 
-      color: 0x444444, 
-      roughness: 0.5, 
-      metalness: 0.5
+      map: panelTexture,
+      roughness: 0.3, 
+      metalness: 0.7,
+      clearcoat: 0.1
     });
     const panel = new THREE.Mesh(panelGeo, panelMat);
-    panel.position.y = -0.4;
-    this.scene.add(panel);
+    panel.position.set(0, -0.4, 1.5); // Shifted to center the controls
+    this.uiGroup.add(panel);
+
+    // Wood Side Panels
+    const sidePanelGeo = new THREE.BoxGeometry(0.6, 1.2, 20.2);
+    const woodTexture = this.textureManager.createWoodTexture();
+    const woodMat = new THREE.MeshPhysicalMaterial({
+      map: woodTexture,
+      roughness: 0.6,
+      metalness: 0.1
+    });
+    
+    const leftPanel = new THREE.Mesh(sidePanelGeo, woodMat);
+    leftPanel.position.set(-12.3, -0.2, 1.5);
+    this.uiGroup.add(leftPanel);
+    
+    const rightPanel = new THREE.Mesh(sidePanelGeo, woodMat);
+    rightPanel.position.set(12.3, -0.2, 1.5);
+    this.uiGroup.add(rightPanel);
 
     // Sections - Compacted
-    this.createSectionBox(-8, 0, 5, 11, "OSC");
-    this.createSectionBox(-3.5, 0, 4, 11, "FILTER");
+    this.createSectionBox(-8, -1.5, 5, 6, "OSC");
+    this.createSectionBox(-3.5, -1.5, 4, 6, "FILTER");
     this.createSectionBox(1, -1.5, 5, 6, "AMP ENV");
     this.createSectionBox(1, 3.5, 5, 4, "DISTORTION");
-    this.createSectionBox(5.5, 0, 4, 11, "LFO");
-    this.createSectionBox(9.5, 0, 3, 11, "FX");
-    this.createSectionBox(5.5, 3.5, 4, 3, "WAVETABLE");
-    this.createSectionBox(0, 7.5, 20, 3.5, "SEQUENCER");
+    this.createSectionBox(5.5, -1.5, 4, 6, "LFO");
+    this.createSectionBox(9.5, -1.5, 3, 6, "FX");
+    this.createSectionBox(9.5, 3.5, 3, 4, "EQ");
     this.createSectionBox(-3.5, 3.5, 4, 3, "FILTER ENV");
+    this.createSectionBox(12, -1.5, 2, 6, "MASTER");
+    
+    // Sequencer Background with Carbon Fiber
+    const seqBgGeo = new THREE.PlaneGeometry(20, 3.5);
+    const carbonTexture = this.textureManager.createCarbonFiberTexture();
+    const seqBgMat = new THREE.MeshPhysicalMaterial({
+      map: carbonTexture,
+      roughness: 0.4,
+      metalness: 0.6
+    });
+    const seqBg = new THREE.Mesh(seqBgGeo, seqBgMat);
+    seqBg.position.set(0, 0.01, 7.5);
+    seqBg.rotation.x = -Math.PI / 2;
+    this.uiGroup.add(seqBg);
+    
+    this.createSectionBox(0, 7.5, 20, 3.5, "SEQUENCER");
+    // Removed redundant FILTER ENV box call here as it's moved up
 
     // CRT Oscilloscope
     const scopeGeo = new THREE.PlaneGeometry(3, 1.5);
     const scopeMat = new THREE.MeshBasicMaterial({ map: this.scopeTexture });
     this.scopeMesh = new THREE.Mesh(scopeGeo, scopeMat);
-    this.scopeMesh.position.set(-8, 0.45, -4.5);
+    this.scopeMesh.position.set(-8, 0.01, -4.5);
     this.scopeMesh.rotation.x = -Math.PI / 2;
-    this.scene.add(this.scopeMesh);
+    this.uiGroup.add(this.scopeMesh);
     this.createLabel("OSCILLOSCOPE", -8, 0.01, -5.5, 24, "#00ff88");
 
     // LCD Display
     const lcdGeo = new THREE.PlaneGeometry(4, 1);
     const lcdMat = new THREE.MeshBasicMaterial({ map: this.lcdTexture });
     this.lcdMesh = new THREE.Mesh(lcdGeo, lcdMat);
-    this.lcdMesh.position.set(0, 0.45, -4.5);
+    this.lcdMesh.position.set(0, 0.01, -4.5);
     this.lcdMesh.rotation.x = -Math.PI / 2;
-    this.scene.add(this.lcdMesh);
+    this.uiGroup.add(this.lcdMesh);
     this.updateLCD("SYSTEM READY", "WAM-2.0 CORE");
 
     // Wavetable Display Window
     const wtDispGeo = new THREE.PlaneGeometry(3, 1.2);
     const wtDispMat = new THREE.MeshBasicMaterial({ map: this.wtTexture });
     this.wtMesh = new THREE.Mesh(wtDispGeo, wtDispMat);
-    this.wtMesh.position.set(5.5, 0.45, 3.2);
+    this.wtMesh.position.set(5.5, 0.01, 3.2);
     this.wtMesh.rotation.x = -Math.PI / 2;
-    this.scene.add(this.wtMesh);
+    this.uiGroup.add(this.wtMesh);
     this.createLabel("WAVETABLE", 5.5, 0.01, 2.4, 24, "#00ff88");
 
-    const pbr = this.textureManager.generateFallbackPBR();
+    // LFO Visualizer
+    const lfoGeo = new THREE.PlaneGeometry(3, 1.5);
+    const lfoMat = new THREE.MeshBasicMaterial({ map: this.lfoTexture });
+    this.lfoMesh = new THREE.Mesh(lfoGeo, lfoMat);
+    this.lfoMesh.position.set(5.5, 0.01, -4.5);
+    this.lfoMesh.rotation.x = -Math.PI / 2;
+    this.uiGroup.add(this.lfoMesh);
+    this.createLabel("LFO MODULATION", 5.5, 0.01, -5.5, 24, "#ff0088");
+
+    const knobCapTexture = this.textureManager.createKnobCapTexture();
     const knobMat = new THREE.MeshPhysicalMaterial({
       color: 0x1a1a1a,
       roughness: 0.2,
@@ -260,7 +346,8 @@ export class Synth3D {
       clearcoat: 1.0,
       clearcoatRoughness: 0.1,
       emissive: 0x00ff88,
-      emissiveIntensity: 0.05
+      emissiveIntensity: 0.05,
+      map: knobCapTexture
     });
 
     const geo = new THREE.CylinderGeometry(0.4, 0.45, 0.6, 64);
@@ -274,9 +361,9 @@ export class Synth3D {
     
     const knobConfigs = [
       // OSC
-      { name: 'W1', param: PARAMETERS.OSC1_WAVE, min: 0, max: 1, value: 0, x: -9, z: -2.5 },
+      { name: 'W1', param: PARAMETERS.OSC1_WAVE, min: 0, max: 3, value: 0, x: -9, z: -2.5 },
       { name: 'M1', param: PARAMETERS.OSC1_MIX, min: 0, max: 1, value: 0.7, x: -7, z: -2.5, hasRing: true },
-      { name: 'W2', param: PARAMETERS.OSC2_WAVE, min: 0, max: 1, value: 1, x: -9, z: 0.5 },
+      { name: 'W2', param: PARAMETERS.OSC2_WAVE, min: 0, max: 3, value: 1, x: -9, z: 0.5 },
       { name: 'M2', param: PARAMETERS.OSC2_MIX, min: 0, max: 1, value: 0.7, x: -7, z: 0.5, hasRing: true },
       { name: 'DET', param: PARAMETERS.OSC2_DETUNE, min: -24, max: 24, value: 0, x: -9, z: 2.5 },
       { name: 'UNI', param: PARAMETERS.UNISON_DETUNE, min: 0, max: 1, value: 0, x: -7, z: 2.5 },
@@ -312,24 +399,24 @@ export class Synth3D {
       { name: 'L2 AMT', param: PARAMETERS.LFO2_AMT, min: 0, max: 1, value: 0, x: 5.5, z: 0.5 },
       
       // FX
-      { name: 'D TIME', param: PARAMETERS.DELAY_TIME, min: 0.01, max: 1, value: 0.3, x: 8.5, z: -2.5 },
-      { name: 'D FDBK', param: PARAMETERS.DELAY_FEEDBACK, min: 0, max: 0.95, value: 0.4, x: 10.5, z: -2.5 },
-      { name: 'D MIX', param: PARAMETERS.DELAY_MIX, min: 0, max: 1, value: 0.3, x: 8.5, z: -0.5 },
-      { name: 'D WID', param: PARAMETERS.DELAY_WIDTH, min: 0, max: 1, value: 1.0, x: 10.5, z: -0.5 },
+      { name: 'D TIME', param: PARAMETERS.DELAY_TIME, min: 0.01, max: 1, value: 0.3, x: 8.8, z: -2.5, scale: 0.7 },
+      { name: 'D FDBK', param: PARAMETERS.DELAY_FEEDBACK, min: 0, max: 0.95, value: 0.4, x: 10.4, z: -2.5, scale: 0.7 },
+      { name: 'D MIX', param: PARAMETERS.DELAY_MIX, min: 0, max: 1, value: 0.3, x: 8.8, z: -0.8, scale: 0.7 },
+      { name: 'D WID', param: PARAMETERS.DELAY_WIDTH, min: 0, max: 1, value: 1.0, x: 10.4, z: -0.8, scale: 0.7 },
 
-      { name: 'R DEC', param: PARAMETERS.REVERB_DECAY, min: 0.1, max: 0.99, value: 0.8, x: 8.5, z: 1.5 },
-      { name: 'R MIX', param: PARAMETERS.REVERB_MIX, min: 0, max: 1, value: 0.2, x: 10.5, z: 1.5 },
-      { name: 'R DMP', param: PARAMETERS.REVERB_DAMP, min: 0, max: 1, value: 0.2, x: 8.5, z: 3.5 },
+      { name: 'R DEC', param: PARAMETERS.REVERB_DECAY, min: 0.1, max: 0.99, value: 0.8, x: 8.8, z: 0.9, scale: 0.7 },
+      { name: 'R MIX', param: PARAMETERS.REVERB_MIX, min: 0, max: 1, value: 0.2, x: 10.4, z: 0.9, scale: 0.7 },
+      { name: 'R DMP', param: PARAMETERS.REVERB_DAMP, min: 0, max: 1, value: 0.2, x: 8.8, z: 2.6, scale: 0.7 },
 
       // LOW SHELF
-      { name: 'LS FREQ', param: PARAMETERS.LOW_SHELF_FREQ, min: 20, max: 1000, value: 200, x: 8.5, z: 5.5 },
-      { name: 'LS GAIN', param: PARAMETERS.LOW_SHELF_GAIN, min: -24, max: 24, value: 0, x: 10.5, z: 5.5 },
+      { name: 'LS FREQ', param: PARAMETERS.LOW_SHELF_FREQ, min: 20, max: 1000, value: 200, x: 8.8, z: 4.3, scale: 0.7 },
+      { name: 'LS GAIN', param: PARAMETERS.LOW_SHELF_GAIN, min: -24, max: 24, value: 0, x: 10.4, z: 4.3, scale: 0.7 },
 
       // TUBE SCREAMER
-      { name: 'TS DRV', param: PARAMETERS.TS_DRIVE, min: 0, max: 1, value: 0.5, x: 0, z: 2.5 },
-      { name: 'TS TON', param: PARAMETERS.TS_TONE, min: 0, max: 1, value: 0.5, x: 2, z: 2.5 },
-      { name: 'TS LVL', param: PARAMETERS.TS_LEVEL, min: 0, max: 1, value: 0.5, x: 0, z: 4.5 },
-      { name: 'TS MIX', param: PARAMETERS.TS_MIX, min: 0, max: 1, value: 0, x: 2, z: 4.5 },
+      { name: 'TS DRV', param: PARAMETERS.TS_DRIVE, min: 0, max: 1, value: 0.5, x: 0, z: 2.5, scale: 0.7 },
+      { name: 'TS TON', param: PARAMETERS.TS_TONE, min: 0, max: 1, value: 0.5, x: 1.6, z: 2.5, scale: 0.7 },
+      { name: 'TS LVL', param: PARAMETERS.TS_LEVEL, min: 0, max: 1, value: 0.5, x: 0, z: 4.1, scale: 0.7 },
+      { name: 'TS MIX', param: PARAMETERS.TS_MIX, min: 0, max: 1, value: 0, x: 1.6, z: 4.1, scale: 0.7 },
 
       // WAVETABLE
       { name: 'MIX', param: PARAMETERS.WT_MIX, min: 0, max: 1, value: 0.5, x: 4.6, z: 4.8, scale: 0.6 },
@@ -347,6 +434,18 @@ export class Synth3D {
       { name: 'S8', param: PARAMETERS.SEQ_STEP_7, min: -12, max: 12, value: 0, x: 9.5, z: 7.5 },
       
       { name: 'TEMPO', param: PARAMETERS.SEQ_TEMPO, min: 40, max: 240, value: 120, x: -7, z: 7.5 },
+
+      // EXPERIMENTAL
+      { name: 'FM', param: PARAMETERS.OSC_FM_AMT, min: 0, max: 1, value: 0, x: -10.8, z: -2.5, scale: 0.6 },
+      { name: 'CHAOS', param: PARAMETERS.CHAOS_AMT, min: 0, max: 1, value: 0, x: -10.8, z: 2.5, scale: 0.6 },
+      
+      { name: 'L1 MORPH', param: PARAMETERS.LFO1_MORPH, min: 0, max: 4, value: 0, x: 4.5, z: 0.9, scale: 0.6 },
+      { name: 'L1 FADE', param: PARAMETERS.LFO1_FADE, min: 0, max: 5, value: 0, x: 4.5, z: 2.3, scale: 0.6 },
+      { name: 'L2 MORPH', param: PARAMETERS.LFO2_MORPH, min: 0, max: 4, value: 0, x: 6.5, z: 0.9, scale: 0.6 },
+      { name: 'L2 FADE', param: PARAMETERS.LFO2_FADE, min: 0, max: 5, value: 0, x: 6.5, z: 2.3, scale: 0.6 },
+
+      // MASTER
+      { name: 'VOL', param: PARAMETERS.MASTER_VOL, min: 0, max: 1, value: 0.7, x: 12, z: -1.5, hasRing: true },
     ];
 
     // SEQ LEDs
@@ -356,35 +455,57 @@ export class Synth3D {
       const led = new THREE.Mesh(ledGeo, ledMat.clone());
       const x = -4.5 + i * 2.0;
       led.position.set(x, 0.1, 6.5);
-      this.scene.add(led);
+      this.uiGroup.add(led);
       this.seqStepLEDs.push(led);
     }
 
     // SEQ ON Switch (Separate from InstancedMesh for custom look)
     const switchBaseGeo = new THREE.BoxGeometry(1, 0.2, 1.5);
-    const switchBaseMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+    const switchBaseMat = new THREE.MeshPhysicalMaterial({ 
+      color: 0x111111,
+      roughness: 0.2,
+      metalness: 0.8
+    });
     const switchBase = new THREE.Mesh(switchBaseGeo, switchBaseMat);
     switchBase.position.set(-9, 0, 7.5);
-    this.scene.add(switchBase);
+    this.uiGroup.add(switchBase);
 
     const switchGeo = new THREE.BoxGeometry(0.6, 0.4, 0.6);
-    const switchMat = new THREE.MeshStandardMaterial({ color: 0x333333, emissive: 0x00ff88, emissiveIntensity: 0 });
+    const switchMat = new THREE.MeshPhysicalMaterial({ 
+      color: 0x333333, 
+      emissive: 0x00ff88, 
+      emissiveIntensity: 0,
+      roughness: 0.1,
+      metalness: 0.9
+    });
     this.seqSwitch = new THREE.Mesh(switchGeo, switchMat);
     this.seqSwitch.position.set(-9, 0.3, 7.5);
-    this.scene.add(this.seqSwitch);
+    this.uiGroup.add(this.seqSwitch);
     this.createLabel("SEQ ON", -9, 0.01, 8.6, 20);
 
-    // OSC1 Wave Switch
-    const osc1Switch = this.createSwitch("OSC1 WAVE", -9, -4.5, PARAMETERS.OSC1_WAVE);
-    this.scene.add(osc1Switch);
+    // Removed OSC1 Wave Switch - now a knob
 
     // LFO Sync Switch
-    const lfoSyncSwitch = this.createSwitch("LFO SYNC", 5.5, -4.5, PARAMETERS.LFO_SYNC_ENABLE);
-    this.scene.add(lfoSyncSwitch);
+    const lfoSyncSwitch = this.createSwitch("LFO SYNC", 5.5, -2.8, PARAMETERS.LFO_SYNC_ENABLE);
+    this.uiGroup.add(lfoSyncSwitch);
 
     // Low Shelf Switch
-    const lsSwitch = this.createSwitch("LS ON", 6.5, 5.5, PARAMETERS.LOW_SHELF_ENABLE);
-    this.scene.add(lsSwitch);
+    const lsSwitch = this.createSwitch("LS ON", 10.4, 3.0, PARAMETERS.LOW_SHELF_ENABLE, 0.6);
+    this.uiGroup.add(lsSwitch);
+
+    // FX Routing Switches
+    const fxOsc1Switch = this.createSwitch("FX OSC1", 7.2, -2.5, PARAMETERS.FX_SRC_OSC1, 0.6);
+    this.uiGroup.add(fxOsc1Switch);
+    const fxOsc2Switch = this.createSwitch("FX OSC2", 7.2, -0.8, PARAMETERS.FX_SRC_OSC2, 0.6);
+    this.uiGroup.add(fxOsc2Switch);
+    const fxWTSwitch = this.createSwitch("FX WT", 7.2, 0.9, PARAMETERS.FX_SRC_WT, 0.6);
+    this.uiGroup.add(fxWTSwitch);
+    const fxEnvSwitch = this.createSwitch("FX ENV", 7.2, 2.6, PARAMETERS.FX_ENV_FOLLOW, 0.6);
+    this.uiGroup.add(fxEnvSwitch);
+
+    // Sync Switch
+    const syncSwitch = this.createSwitch("SYNC", -10.8, 0.5, PARAMETERS.OSC_SYNC_ENABLE, 0.6);
+    this.uiGroup.add(syncSwitch);
 
     this.syncSwitches();
 
@@ -408,7 +529,7 @@ export class Synth3D {
       
       const knobGroup = this.createKnob(config, i, knobMat, notchMat);
       knobGroup.position.set(config.x, 0, config.z);
-      this.scene.add(knobGroup);
+      this.uiGroup.add(knobGroup);
       
       this.updateKnobInstance(i);
       const labelSize = (config as any).scale ? 18 : 24;
@@ -425,19 +546,16 @@ export class Synth3D {
     // Solid Knob Geometry
     const points = [];
     points.push(new THREE.Vector2(0, 0)); // Bottom center
-    points.push(new THREE.Vector2(0.5, 0)); // Bottom outer
-    points.push(new THREE.Vector2(0.5, 0.6)); // Side
-    points.push(new THREE.Vector2(0.4, 0.8)); // Bevel
-    points.push(new THREE.Vector2(0, 0.8)); // Top center
+    points.push(new THREE.Vector2(0.35, 0)); // Bottom outer
+    points.push(new THREE.Vector2(0.35, 0.45)); // Side
+    points.push(new THREE.Vector2(0.28, 0.6)); // Bevel
+    points.push(new THREE.Vector2(0, 0.6)); // Top center
     const geo = new THREE.LatheGeometry(points, 32);
     
-    const mat = new THREE.MeshStandardMaterial({
-      color: 0x222222,
-      roughness: 0.4,
-      metalness: 0.6,
-      emissive: color,
-      emissiveIntensity: 0.2
-    });
+    // Use the passed knobMat but clone it to set section-specific emissive color
+    const mat = (knobMat as THREE.MeshPhysicalMaterial).clone();
+    mat.emissive.setHex(color);
+    mat.emissiveIntensity = 0.1;
     
     const knob = new THREE.Mesh(geo, mat);
     knob.position.y = 0;
@@ -446,8 +564,8 @@ export class Synth3D {
     this.knobMeshes.push(knob);
 
     // Add indicator notch
-    const notchGeo = new THREE.BoxGeometry(0.1, 0.9, 0.2);
-    notchGeo.translate(0, 0, 0.4);
+    const notchGeo = new THREE.BoxGeometry(0.08, 0.7, 0.15);
+    notchGeo.translate(0, 0, 0.28);
     const notch = new THREE.Mesh(notchGeo, notchMat);
     const s = (config as any).scale || 1.0;
     notch.scale.set(s, s, s);
@@ -480,7 +598,8 @@ export class Synth3D {
     if (index < 35) return 'EQ';
     if (index < 39) return 'DIST';
     if (index < 43) return 'WT';
-    return 'SEQ';
+    if (index < 44) return 'SEQ';
+    return 'MASTER';
   }
 
   private getSectionColor(section: string): number {
@@ -494,6 +613,7 @@ export class Synth3D {
       case 'EQ': return 0x00ffff;
       case 'DIST': return 0xff0000;
       case 'WT': return 0xffff00;
+      case 'MASTER': return 0xffffff;
       default: return 0xaaaaaa;
     }
   }
@@ -521,9 +641,9 @@ export class Synth3D {
       if (data.modParam !== undefined) {
         const modAmt = this.host.paramArray[data.modParam];
         if (modAmt > 0) {
-          const lfoRate = this.host.paramArray[PARAMETERS.LFO_RATE];
-          const pulse = Math.sin(Date.now() * 0.001 * lfoRate * 2 * Math.PI) * 0.5 + 0.5;
-          targetEmissive += pulse * 2.0 * modAmt;
+          // Use real-time LFO value from DSP
+          const pulse = (this.lfo1Val * 0.5 + 0.5);
+          targetEmissive += pulse * 3.0 * modAmt;
         }
       }
 
@@ -542,7 +662,7 @@ export class Synth3D {
       const segments = 64;
       for (let i = 0; i <= segments * normalized; i++) {
         const angle = Math.PI / 2 - (i / segments) * 2 * Math.PI;
-        points.push(new THREE.Vector3(Math.cos(angle) * 0.55, Math.sin(angle) * 0.55, 0));
+        points.push(new THREE.Vector3(Math.cos(angle) * 0.42, Math.sin(angle) * 0.42, 0));
       }
       (data.ringMesh as THREE.Line).geometry.setFromPoints(points);
     }
@@ -629,7 +749,7 @@ export class Synth3D {
     // Custom formatting based on parameter type
     if (data.paramIndex === PARAMETERS.FILTER_CUTOFF || data.paramIndex === PARAMETERS.LOW_SHELF_FREQ) {
       valStr = `${Math.round(data.targetValue)} HZ`;
-    } else if (data.paramIndex === PARAMETERS.SUB_OSC_WAVE) {
+    } else if (data.paramIndex === PARAMETERS.SUB_OSC_WAVE || data.paramIndex === PARAMETERS.OSC1_WAVE || data.paramIndex === PARAMETERS.OSC2_WAVE) {
       const waveIdx = Math.round(data.targetValue);
       const waves = ['PULSE', 'SAW', 'TRI', 'SINE'];
       valStr = waves[waveIdx] || 'PULSE';
@@ -669,8 +789,73 @@ export class Synth3D {
     this.renderer.setSize(width, height);
   }
 
-  public setSequencerStep(step: number) {
+  public updateSeqStep(step: number) {
     this.currentSeqStep = step;
+  }
+
+  public updateLFOs(lfo1: number, lfo2: number) {
+    this.lfo1Val = lfo1;
+    this.lfo2Val = lfo2;
+    
+    this.lfoHistory1.push(lfo1);
+    if (this.lfoHistory1.length > 100) this.lfoHistory1.shift();
+    
+    this.lfoHistory2.push(lfo2);
+    if (this.lfoHistory2.length > 100) this.lfoHistory2.shift();
+  }
+
+  private drawLFOVisualizer() {
+    const ctx = this.lfoCtx;
+    const w = this.lfoCanvas.width;
+    const h = this.lfoCanvas.height;
+
+    ctx.fillStyle = '#050505';
+    ctx.fillRect(0, 0, w, h);
+
+    // Grid
+    ctx.strokeStyle = '#ff008822';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 0; i < w; i += 32) { ctx.moveTo(i, 0); ctx.lineTo(i, h); }
+    for (let i = 0; i < h; i += 32) { ctx.moveTo(0, i); ctx.lineTo(w, i); }
+    ctx.stroke();
+
+    // LFO 1 (Cyan/Green)
+    ctx.strokeStyle = '#00ff88';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i < this.lfoHistory1.length; i++) {
+      const x = (i / 100) * w;
+      const y = (this.lfoHistory1[i] * 0.4 + 0.5) * h;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // LFO 2 (Magenta)
+    ctx.strokeStyle = '#ff0088';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i < this.lfoHistory2.length; i++) {
+      const x = (i / 100) * w;
+      const y = (this.lfoHistory2[i] * 0.4 + 0.5) * h;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // Current Values (dots)
+    ctx.fillStyle = '#00ff88';
+    ctx.beginPath();
+    ctx.arc(w - 5, (this.lfo1Val * 0.4 + 0.5) * h, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#ff0088';
+    ctx.beginPath();
+    ctx.arc(w - 5, (this.lfo2Val * 0.4 + 0.5) * h, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    this.lfoTexture.needsUpdate = true;
   }
 
   public updateScope(data: Float32Array) {
@@ -709,7 +894,12 @@ export class Synth3D {
     this.scopeTexture.needsUpdate = true;
   }
 
-  private updateLCD(line1: string, line2: string) {
+  public updateLCD(line1: string, line2: string) {
+    this.lcdLine1 = line1;
+    this.lcdLine2 = line2;
+  }
+
+  private drawLCD() {
     const ctx = this.lcdCtx;
     const w = this.lcdCanvas.width;
     const h = this.lcdCanvas.height;
@@ -720,20 +910,39 @@ export class Synth3D {
     ctx.fillStyle = '#00ff88';
     ctx.font = 'bold 48px "JetBrains Mono", monospace';
     ctx.textAlign = 'center';
-    ctx.fillText(line1.toUpperCase(), w / 2, 50);
+    ctx.fillText(this.lcdLine1.toUpperCase(), w / 2, 50);
     
     ctx.font = '32px "JetBrains Mono", monospace';
     ctx.fillStyle = '#00ff88aa';
-    ctx.fillText(line2.toUpperCase(), w / 2, 90);
+    ctx.fillText(this.lcdLine2.toUpperCase(), w / 2, 90);
 
     // Bar graph
-    const val = parseFloat(line2);
+    const val = parseFloat(this.lcdLine2);
     if (!isNaN(val)) {
       ctx.fillStyle = '#00ff8844';
       ctx.fillRect(w / 4, 105, w / 2, 15);
       ctx.fillStyle = '#00ff88';
       ctx.fillRect(w / 4, 105, (w / 2) * Math.min(1, Math.max(0, val / 100)), 15);
     }
+
+    // LFO Visualizer
+    const lfoSize = 40;
+    const lfoX = w - lfoSize - 20;
+    const lfoY = 20;
+    ctx.strokeStyle = '#00ff8822';
+    ctx.strokeRect(lfoX, lfoY, lfoSize, lfoSize);
+    
+    // LFO 1 (Pink)
+    ctx.fillStyle = '#ff0088';
+    ctx.beginPath();
+    ctx.arc(lfoX + lfoSize/2 + this.lfo1Val * (lfoSize/2 - 5), lfoY + lfoSize/3, 4, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // LFO 2 (Cyan)
+    ctx.fillStyle = '#00ffff';
+    ctx.beginPath();
+    ctx.arc(lfoX + lfoSize/2 + this.lfo2Val * (lfoSize/2 - 5), lfoY + (lfoSize*2)/3, 4, 0, Math.PI * 2);
+    ctx.fill();
     
     this.lcdTexture.needsUpdate = true;
   }
@@ -746,7 +955,9 @@ export class Synth3D {
     if (!this.host.paramArray) return;
     
     const wtPos = this.host.paramArray[PARAMETERS.WT_POS];
-    const readIdx = this.host.paramArray[60]; // Last read index from processor
+    const wtLfoAmt = this.host.paramArray[PARAMETERS.WT_LFO_AMT] || 0;
+    const readIdx = this.host.paramArray[66] || 0; // Last read index from processor
+    const isPlaying = this.host.paramArray[67] > 0.5;
 
     ctx.fillStyle = '#050505';
     ctx.fillRect(0, 0, w, h);
@@ -765,7 +976,8 @@ export class Synth3D {
     
     // We'll approximate the morphing wave for display
     // Sine -> Triangle -> Saw -> Square
-    const morph = wtPos;
+    // Only morph with LFO if sound is playing
+    const morph = isPlaying ? Math.max(0, Math.min(1, wtPos + this.lfo1Val * wtLfoAmt)) : wtPos;
     for (let i = 0; i < w; i++) {
       const t = i / w;
       const phase = t * Math.PI * 2;
@@ -788,12 +1000,14 @@ export class Synth3D {
     }
     ctx.stroke();
 
-    // Draw read position indicator
-    const indicatorX = (readIdx * 2048 % 128) / 127 * w;
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(indicatorX, h / 2, 4, 0, Math.PI * 2);
-    ctx.fill();
+    // Draw read position indicator only if playing
+    if (isPlaying) {
+      const indicatorX = (readIdx * 2048 % 128) / 127 * w;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(indicatorX, h / 2, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     this.wtTexture.needsUpdate = true;
   }
@@ -863,6 +1077,10 @@ export class Synth3D {
 
     // Update Wavetable Display
     this.updateWavetableDisplay();
+
+    // Update LCD Realtime
+    this.drawLCD();
+    this.drawLFOVisualizer();
 
     this.renderer.render(this.scene, this.camera);
   };

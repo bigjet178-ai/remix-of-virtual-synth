@@ -8,12 +8,18 @@
  */
 
 export class PolyBLEPOscillator {
-  private phase: number = 0.0;
+  public phase: number = 0.0;
   private phaseInc: number = 0.0;
   private sampleRate: number = 44100;
+  public didWrap: boolean = false;
 
   constructor(sampleRate: number) {
-    this.sampleRate = sampleRate;
+    this.sampleRate = sampleRate || 44100;
+  }
+
+  public reset(): void {
+    this.phase = 0.0;
+    this.didWrap = false;
   }
 
   public setFrequency(freq: number): void {
@@ -42,7 +48,11 @@ export class PolyBLEPOscillator {
   public processSine(): number {
     const val = Math.sin(this.phase * Math.PI * 2.0);
     this.phase += this.phaseInc;
-    if (this.phase >= 1.0) this.phase -= 1.0;
+    this.didWrap = false;
+    if (this.phase >= 1.0) {
+      this.phase -= 1.0;
+      this.didWrap = true;
+    }
     return val;
   }
 
@@ -55,7 +65,11 @@ export class PolyBLEPOscillator {
     
     // Advance phase
     this.phase += dt;
-    if (this.phase >= 1.0) this.phase -= 1.0;
+    this.didWrap = false;
+    if (this.phase >= 1.0) {
+      this.phase -= 1.0;
+      this.didWrap = true;
+    }
     
     return naive;
   }
@@ -72,8 +86,10 @@ export class PolyBLEPOscillator {
 
     // Advance phase
     this.phase += dt;
+    this.didWrap = false;
     if (this.phase >= 1.0) {
       this.phase -= 1.0;
+      this.didWrap = true;
     }
 
     return naive;
@@ -96,8 +112,10 @@ export class PolyBLEPOscillator {
 
     // Advance phase
     this.phase += dt;
+    this.didWrap = false;
     if (this.phase >= 1.0) {
       this.phase -= 1.0;
+      this.didWrap = true;
     }
 
     return naive;

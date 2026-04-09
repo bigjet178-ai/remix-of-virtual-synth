@@ -26,12 +26,16 @@ class Voice {
   public dpwOsc: DPWOscillator;
   public wtOsc: WavetableOscillator;
   public filter: ZDFLadderFilter;
+  public filterFX: ZDFLadderFilter;
   public adsr: ADSR;
   public filterAdsr: ADSR;
   public note: number = -1;
   public freq: number = 0;
   public isActive: boolean = false;
   public startTime: number = 0;
+  public currentEnv: number = 0;
+  private chaosOffset: number = 0;
+  private lfoFadeCounter: number = 0;
 
   constructor(sampleRate: number) {
     this.osc1 = new PolyBLEPOscillator(sampleRate);
@@ -42,17 +46,27 @@ class Voice {
     this.dpwOsc = new DPWOscillator(sampleRate);
     this.wtOsc = new WavetableOscillator(sampleRate);
     this.filter = new ZDFLadderFilter(sampleRate);
+    this.filterFX = new ZDFLadderFilter(sampleRate);
     this.adsr = new ADSR(sampleRate);
     this.filterAdsr = new ADSR(sampleRate);
   }
 
-  trigger(note: number, freq: number, time: number) {
+  trigger(note: number, freq: number, time: number, chaosAmt: number) {
     this.note = note;
     this.freq = freq;
     this.isActive = true;
     this.startTime = time;
     this.adsr.trigger();
     this.filterAdsr.trigger();
+    this.filter.reset();
+    this.filterFX.reset();
+    this.osc1.reset();
+    this.osc1UnisonL.reset();
+    this.osc1UnisonR.reset();
+    this.osc2.reset();
+    this.subOsc.reset();
+    this.chaosOffset = (Math.random() * 2 - 1) * chaosAmt;
+    this.lfoFadeCounter = 0;
   }
 
   release() {
@@ -60,33 +74,65 @@ class Voice {
     this.filterAdsr.releaseNote();
   }
 
-  process(p: Float32Array, lfo1Val: number, lfo2Val: number): number {
-    if (!this.isActive) return 0;
+  process(p: Float32Array, lfo1Val: number, lfo2Val: number): { dry: number, fx: number } {
+    if (!this.isActive) return { dry: 0, fx: 0 };
 
     const envVal = this.adsr.process();
+    this.currentEnv = envVal;
     const filterEnvVal = this.filterAdsr.process();
 
     if (this.adsr.isIdle && envVal < 0.0001) {
       this.isActive = false;
-      return 0;
+      return { dry: 0, fx: 0 };
     }
 
-    const osc1Wave = p[PARAMETERS.OSC1_WAVE];
+    const osc1Wave = Math.round(p[PARAMETERS.OSC1_WAVE] || 0);
     const osc1Mix = p[PARAMETERS.OSC1_MIX];
     const osc2Detune = p[PARAMETERS.OSC2_DETUNE];
-    const osc2Wave = p[PARAMETERS.OSC2_WAVE];
+    const osc2Wave = Math.round(p[PARAMETERS.OSC2_WAVE] || 0);
     const osc2Mix = p[PARAMETERS.OSC2_MIX];
+
+    // Chaos
+    const chaosFreq = this.freq * Math.pow(2, this.chaosOffset / 12);
+
+    // LFO Fade
+    const lfo1FadeTime = p[PARAMETERS.LFO1_FADE] || 0;
+    const lfo2FadeTime = p[PARAMETERS.LFO2_FADE] || 0;
+    this.lfoFadeCounter += 1 / sampleRate;
+    
+    const lfo1Fade = lfo1FadeTime > 0 ? Math.min(1, this.lfoFadeCounter / lfo1FadeTime) : 1;
+    const lfo2Fade = lfo2FadeTime > 0 ? Math.min(1, this.lfoFadeCounter / lfo2FadeTime) : 1;
+
+    const vLfo1 = lfo1Val * lfo1Fade;
+    const vLfo2 = lfo2Val * lfo2Fade;
 
     // LFO2 can modulate Pitch
     const lfo2Amt = p[PARAMETERS.LFO2_AMT] || 0;
-    const pitchMod = Math.pow(2, (lfo1Val * 0.1 + lfo2Val * lfo2Amt) / 12);
+    const pitchMod = Math.pow(2, (vLfo1 * 0.1 + vLfo2 * lfo2Amt) / 12);
 
-    this.osc1.setFrequency(this.freq * pitchMod);
-    const s1 = osc1Wave < 0.5 ? this.osc1.processSaw() : this.osc1.processPulse(0.5);
+    // FM and Sync
+    const fmAmt = p[PARAMETERS.OSC_FM_AMT] || 0;
+    const syncEnabled = p[PARAMETERS.OSC_SYNC_ENABLE] > 0.5;
+
+    this.osc1.setFrequency(chaosFreq * pitchMod);
+    let s1 = 0;
+    if (osc1Wave === 0) s1 = this.osc1.processPulse(0.5);
+    else if (osc1Wave === 1) s1 = this.osc1.processSaw();
+    else if (osc1Wave === 2) s1 = this.osc1.processTriangle();
+    else s1 = this.osc1.processSine();
     
-    const osc2Freq = this.freq * Math.pow(2, osc2Detune / 12) * pitchMod;
+    if (syncEnabled && this.osc1.didWrap) {
+      this.osc2.phase = 0;
+    }
+
+    const fmMod = 1.0 + s1 * fmAmt;
+    const osc2Freq = chaosFreq * Math.pow(2, osc2Detune / 12) * pitchMod * fmMod;
     this.osc2.setFrequency(osc2Freq);
-    const s2 = osc2Wave < 0.5 ? this.osc2.processSaw() : this.osc2.processPulse(0.5);
+    let s2 = 0;
+    if (osc2Wave === 0) s2 = this.osc2.processPulse(0.5);
+    else if (osc2Wave === 1) s2 = this.osc2.processSaw();
+    else if (osc2Wave === 2) s2 = this.osc2.processTriangle();
+    else s2 = this.osc2.processSine();
 
     // New additions
     const unisonDetune = p[PARAMETERS.UNISON_DETUNE] || 0;
@@ -97,16 +143,21 @@ class Voice {
     let unisonSignal = 0;
     if (unisonDetune > 0) {
       // Slight detune for unison copies
-      this.osc1UnisonL.setFrequency(this.freq * pitchMod * Math.pow(2, -unisonDetune * 0.05));
-      this.osc1UnisonR.setFrequency(this.freq * pitchMod * Math.pow(2, unisonDetune * 0.05));
-      const uL = osc1Wave < 0.5 ? this.osc1UnisonL.processSaw() : this.osc1UnisonL.processPulse(0.5);
-      const uR = osc1Wave < 0.5 ? this.osc1UnisonR.processSaw() : this.osc1UnisonR.processPulse(0.5);
+      this.osc1UnisonL.setFrequency(chaosFreq * pitchMod * Math.pow(2, -unisonDetune * 0.05));
+      this.osc1UnisonR.setFrequency(chaosFreq * pitchMod * Math.pow(2, unisonDetune * 0.05));
+      
+      let uL = 0, uR = 0;
+      if (osc1Wave === 0) { uL = this.osc1UnisonL.processPulse(0.5); uR = this.osc1UnisonR.processPulse(0.5); }
+      else if (osc1Wave === 1) { uL = this.osc1UnisonL.processSaw(); uR = this.osc1UnisonR.processSaw(); }
+      else if (osc1Wave === 2) { uL = this.osc1UnisonL.processTriangle(); uR = this.osc1UnisonR.processTriangle(); }
+      else { uL = this.osc1UnisonL.processSine(); uR = this.osc1UnisonR.processSine(); }
+      
       unisonSignal = (uL + uR) * 0.5 * osc1Mix;
     }
 
     // Sub Osc (1 octave down)
-    const subWave = p[PARAMETERS.SUB_OSC_WAVE] || 0;
-    this.subOsc.setFrequency(this.freq * pitchMod * 0.5);
+    const subWave = Math.round(p[PARAMETERS.SUB_OSC_WAVE] || 0);
+    this.subOsc.setFrequency(chaosFreq * pitchMod * 0.5);
     let subSignal = 0;
     if (subWave === 0) subSignal = this.subOsc.processPulse(0.5);
     else if (subWave === 1) subSignal = this.subOsc.processSaw();
@@ -117,7 +168,7 @@ class Voice {
     // DPW Osc
     const dpwMix = p[PARAMETERS.DPW_MIX] || 0;
     const dpwDetune = p[PARAMETERS.DPW_DETUNE] || 0;
-    const dpwFreq = this.freq * Math.pow(2, dpwDetune / 12) * pitchMod;
+    const dpwFreq = chaosFreq * Math.pow(2, dpwDetune / 12) * pitchMod;
     const dpwSignal = this.dpwOsc.process(dpwFreq) * dpwMix;
 
     // Noise
@@ -130,17 +181,32 @@ class Voice {
     const wtDetune = p[PARAMETERS.WT_DETUNE] || 0;
     
     // Scrub index with LFO1
-    const scrub = Math.max(0, Math.min(1, wtPos + lfo1Val * wtLfoAmt));
-    const wtFreq = this.freq * Math.pow(2, wtDetune / 12) * pitchMod;
+    const scrub = Math.max(0, Math.min(1, wtPos + vLfo1 * wtLfoAmt));
+    const wtFreq = chaosFreq * Math.pow(2, wtDetune / 12) * pitchMod;
     this.wtOsc.setFrequency(wtFreq);
     const wtSignal = this.wtOsc.process(scrub) * wtMix;
 
-    // Report read index to a shared parameter slot (using slot 66 for visualization)
-    // Only the first active voice reports to avoid flickering if multiple voices are active,
-    // or we could average them, but usually showing one is enough for UI.
     p[66] = this.wtOsc.lastReadIndex;
 
-    const mixed = (s1 * osc1Mix + s2 * osc2Mix + unisonSignal + subSignal + dpwSignal + noiseSignal + wtSignal) * envVal;
+    // Routing Logic
+    const routeOsc1 = p[PARAMETERS.FX_SRC_OSC1] > 0.5;
+    const routeOsc2 = p[PARAMETERS.FX_SRC_OSC2] > 0.5;
+    const routeWT = p[PARAMETERS.FX_SRC_WT] > 0.5;
+
+    let sigFX = 0;
+    let sigDry = subSignal + dpwSignal + noiseSignal;
+
+    const osc1Sig = (s1 * osc1Mix + unisonSignal);
+    const osc2Sig = (s2 * osc2Mix);
+    const wtSig = wtSignal;
+
+    if (routeOsc1) sigFX += osc1Sig; else sigDry += osc1Sig;
+    if (routeOsc2) sigFX += osc2Sig; else sigDry += osc2Sig;
+    if (routeWT) sigFX += wtSig; else sigDry += wtSig;
+
+    // Apply envelope
+    sigFX *= envVal;
+    sigDry *= envVal;
 
     // Filter Modulation
     const targetCutoff = p[PARAMETERS.FILTER_CUTOFF];
@@ -148,11 +214,16 @@ class Voice {
     const envAmt = p[PARAMETERS.FILTER_ENV_DEPTH] || 0;
     const lfo1Amt = p[PARAMETERS.FILTER_LFO_AMT];
     
-    let modCutoff = targetCutoff + (filterEnvVal * envAmt) + (lfo1Val * lfo1Amt);
+    let modCutoff = targetCutoff + (filterEnvVal * envAmt) + (vLfo1 * lfo1Amt);
     modCutoff = Math.max(20, Math.min(20000, modCutoff));
+    
     this.filter.setParameters(modCutoff, filterRes);
+    this.filterFX.setParameters(modCutoff, filterRes);
 
-    return this.filter.process(mixed);
+    return {
+      dry: this.filter.process(sigDry),
+      fx: this.filterFX.process(sigFX)
+    };
   }
 }
 
@@ -214,9 +285,13 @@ class SynthProcessor extends AudioWorkletProcessor {
   }
 
   private processEvent(type: number, value: number) {
+    const p = this.paramArray;
+    if (!p) return;
+
     if (type === EVENTS.NOTE_ON) {
       const note = value;
       const freq = 440 * Math.pow(2, (note - 69) / 12);
+      const chaosAmt = p[PARAMETERS.CHAOS_AMT] || 0;
       
       // Find free voice or steal oldest
       let voice = this.voices.find(v => !v.isActive);
@@ -226,7 +301,7 @@ class SynthProcessor extends AudioWorkletProcessor {
         );
       }
       
-      voice.trigger(note, freq, this.frameCount);
+      voice.trigger(note, freq, this.frameCount, chaosAmt);
     } else if (type === EVENTS.NOTE_OFF) {
       const note = value;
       this.voices.forEach(v => {
@@ -326,31 +401,58 @@ class SynthProcessor extends AudioWorkletProcessor {
       } else {
         this.lfo1.rate = p[PARAMETERS.LFO_RATE];
       }
+      this.lfo1.morph = p[PARAMETERS.LFO1_MORPH] || 0;
+      this.lfo2.rate = p[PARAMETERS.LFO2_RATE];
+      this.lfo2.morph = p[PARAMETERS.LFO2_MORPH] || 0;
+
       const lfo1Val = this.lfo1.process();
       const lfo2Val = this.lfo2.process();
 
       // Process all voices
-      let mixed = 0;
+      let mixedDry = 0;
+      let mixedFX = 0;
+      let anyVoiceActive = false;
+      let maxEnv = 0;
       for (const v of this.voices) {
-        mixed += v.process(p, lfo1Val, lfo2Val);
+        const out = v.process(p, lfo1Val, lfo2Val);
+        mixedDry += out.dry;
+        mixedFX += out.fx;
+        if (v.isActive) {
+          anyVoiceActive = true;
+          maxEnv = Math.max(maxEnv, v.currentEnv);
+        }
       }
+      p[67] = anyVoiceActive ? 1 : 0;
 
       // Effects
       this.delay.time += (p[PARAMETERS.DELAY_TIME] - this.delay.time) * 0.005;
       this.delay.feedback += (p[PARAMETERS.DELAY_FEEDBACK] - this.delay.feedback) * 0.005;
-      this.delay.mix += (p[PARAMETERS.DELAY_MIX] - this.delay.mix) * 0.005;
+      
+      let delayMix = p[PARAMETERS.DELAY_MIX];
+      let reverbMix = p[PARAMETERS.REVERB_MIX];
+      let tsMix = p[PARAMETERS.TS_MIX] || 0;
+
+      // Envelope following for FX
+      if (p[PARAMETERS.FX_ENV_FOLLOW] > 0.5) {
+        delayMix *= maxEnv;
+        reverbMix *= maxEnv;
+        tsMix *= maxEnv;
+      }
+
+      this.delay.mix += (delayMix - this.delay.mix) * 0.005;
       this.delay.width += (p[PARAMETERS.DELAY_WIDTH] - this.delay.width) * 0.005;
       this.reverb.decay += (p[PARAMETERS.REVERB_DECAY] - this.reverb.decay) * 0.005;
-      this.reverb.mix += (p[PARAMETERS.REVERB_MIX] - this.reverb.mix) * 0.005;
+      this.reverb.mix += (reverbMix - this.reverb.mix) * 0.005;
       this.reverb.damp += (p[PARAMETERS.REVERB_DAMP] - this.reverb.damp) * 0.005;
 
-      this.delay.process(mixed);
+      // Apply effects ONLY to mixedFX path
+      this.delay.process(mixedFX);
       this.reverb.process(this.delay.outL, this.delay.outR);
       
-      let outL = this.reverb.outL * masterVol;
-      let outR = this.reverb.outR * masterVol;
+      let outL = (this.reverb.outL + mixedDry) * masterVol;
+      let outR = (this.reverb.outR + mixedDry) * masterVol;
 
-      // Low Shelf Filter
+      // Low Shelf Filter (Global)
       const lowShelfEnabled = p[PARAMETERS.LOW_SHELF_ENABLE] > 0.5;
       if (lowShelfEnabled) {
         const freq = p[PARAMETERS.LOW_SHELF_FREQ] || 200;
@@ -361,7 +463,6 @@ class SynthProcessor extends AudioWorkletProcessor {
       }
 
       // Tube Screamer
-      const tsMix = p[PARAMETERS.TS_MIX] || 0;
       if (tsMix > 0) {
         const drive = p[PARAMETERS.TS_DRIVE] || 0.5;
         const tone = p[PARAMETERS.TS_TONE] || 0.5;
@@ -404,7 +505,12 @@ class SynthProcessor extends AudioWorkletProcessor {
 
       // Scope reporting (every ~21ms at 48kHz)
       if (this.frameCount % 1024 === 0) {
-        this.port.postMessage({ type: 'scope', data: output[0].slice(0, 128) });
+        this.port.postMessage({ 
+          type: 'scope', 
+          data: output[0].slice(0, 128),
+          lfo1: lfo1Val,
+          lfo2: lfo2Val
+        });
       }
     }
 

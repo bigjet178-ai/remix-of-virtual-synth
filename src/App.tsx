@@ -18,11 +18,18 @@ function App() {
   const [octave, setOctave] = useState(4); // Default octave 4 (Middle C)
   const containerRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<SynthHost | null>(null);
+  const synth3DRef = useRef<Synth3D | null>(null);
   const activeNotes = useRef<Map<string, number>>(new Map());
 
   const [isRecording, setIsRecording] = useState(false);
   const [showPresets, setShowPresets] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [userPresets, setUserPresets] = useState<Preset[]>(() => {
+    const saved = localStorage.getItem('wam_user_presets');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [newPresetName, setNewPresetName] = useState('');
 
   const applyPreset = (preset: Preset) => {
     if (!hostRef.current) return;
@@ -31,6 +38,33 @@ function App() {
     });
     setShowPresets(false);
     setActiveCategory(null);
+  };
+
+  const saveCurrentPreset = () => {
+    if (!hostRef.current || !newPresetName.trim()) return;
+    
+    const params: Record<number, number> = {};
+    // Capture all current parameters from the host's paramArray
+    for (let i = 0; i < PARAMETERS.MASTER_VOL + 1; i++) {
+      params[i] = hostRef.current.paramArray[i];
+    }
+
+    const newPreset: Preset = {
+      name: newPresetName.trim(),
+      params
+    };
+
+    const updatedPresets = [...userPresets, newPreset];
+    setUserPresets(updatedPresets);
+    localStorage.setItem('wam_user_presets', JSON.stringify(updatedPresets));
+    setNewPresetName('');
+    setSaveModalOpen(false);
+  };
+
+  const deleteUserPreset = (index: number) => {
+    const updatedPresets = userPresets.filter((_, i) => i !== index);
+    setUserPresets(updatedPresets);
+    localStorage.setItem('wam_user_presets', JSON.stringify(updatedPresets));
   };
 
   const toggleRecording = () => {
@@ -50,9 +84,12 @@ function App() {
         if (msg.type === 'record-done') {
           exportWav(msg.buffer);
         } else if (msg.type === 'seq-step') {
-          // Handle sequencer step
+          if (synth3DRef.current) synth3DRef.current.updateSeqStep(msg.step);
         } else if (msg.type === 'scope') {
-          // Handle scope data
+          if (synth3DRef.current) {
+            synth3DRef.current.updateScope(msg.data);
+            if (msg.lfo1 !== undefined) synth3DRef.current.updateLFOs(msg.lfo1, msg.lfo2);
+          }
         }
       });
     }
@@ -126,7 +163,7 @@ function App() {
       }
 
       if (containerRef.current) {
-        new Synth3D(containerRef.current, hostRef.current);
+        synth3DRef.current = new Synth3D(containerRef.current, hostRef.current);
         setBootProgress(90);
       }
       
@@ -274,6 +311,16 @@ function App() {
                             <ChevronRight size={12} className={activeCategory === cat.category ? 'opacity-100' : 'opacity-0'} />
                           </button>
                         ))}
+                        
+                        {userPresets.length > 0 && (
+                          <button
+                            onMouseEnter={() => setActiveCategory('User')}
+                            className={`px-3 py-2 text-left text-xs transition-colors flex items-center justify-between ${activeCategory === 'User' ? 'bg-zinc-800 text-emerald-500' : 'text-zinc-300 hover:bg-zinc-800/50'}`}
+                          >
+                            User Presets
+                            <ChevronRight size={12} className={activeCategory === 'User' ? 'opacity-100' : 'opacity-0'} />
+                          </button>
+                        )}
                       </div>
                     </div>
                     
@@ -283,21 +330,59 @@ function App() {
                           <span className="text-[9px] text-zinc-500 uppercase tracking-widest">{activeCategory}</span>
                         </div>
                         <div className="flex flex-col py-1">
-                          {PRESET_CATEGORIES.find(c => c.category === activeCategory)?.presets.map((preset, i) => (
-                            <button
-                              key={i}
-                              onClick={() => applyPreset(preset)}
-                              className="px-3 py-2 text-left text-xs text-zinc-300 hover:bg-zinc-800 hover:text-emerald-500 transition-colors"
-                            >
-                              {preset.name}
-                            </button>
-                          ))}
+                          {activeCategory === 'User' ? (
+                            userPresets.map((preset, i) => (
+                              <div key={i} className="group flex items-center justify-between hover:bg-zinc-800 transition-colors">
+                                <button
+                                  onClick={() => applyPreset(preset)}
+                                  className="flex-1 px-3 py-2 text-left text-xs text-zinc-300 group-hover:text-emerald-500 transition-colors"
+                                >
+                                  {preset.name}
+                                </button>
+                                <button 
+                                  onClick={(e) => { e.stopPropagation(); deleteUserPreset(i); }}
+                                  className="px-2 py-2 text-zinc-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                                  title="Delete Preset"
+                                >
+                                  <Activity size={10} />
+                                </button>
+                              </div>
+                            ))
+                          ) : (
+                            PRESET_CATEGORIES.find(c => c.category === activeCategory)?.presets.map((preset, i) => (
+                              <button
+                                key={i}
+                                onClick={() => applyPreset(preset)}
+                                className="px-3 py-2 text-left text-xs text-zinc-300 hover:bg-zinc-800 hover:text-emerald-500 transition-colors"
+                              >
+                                {preset.name}
+                              </button>
+                            ))
+                          )}
                         </div>
                       </div>
                     )}
                   </div>
                 )}
               </div>
+
+              <button 
+                onClick={() => setSaveModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-sm border border-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors bg-zinc-900/50"
+                title="Save Current Preset"
+              >
+                <Volume2 size={14} className="text-emerald-500" />
+                <span className="text-[10px] font-bold uppercase tracking-widest">Save</span>
+              </button>
+
+              <button 
+                onClick={() => hostRef.current?.randomize()}
+                className="flex items-center gap-2 px-4 py-2 rounded-sm border border-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors bg-zinc-900/50"
+                title="Randomize Parameters"
+              >
+                <Activity size={14} className="text-emerald-500" />
+                <span className="text-[10px] font-bold uppercase tracking-widest">Random</span>
+              </button>
 
               <button 
                 onClick={toggleRecording}
@@ -382,6 +467,66 @@ function App() {
                   )}
                 </div>
               </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Save Preset Modal */}
+        <AnimatePresence>
+          {saveModalOpen && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+            >
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                className="bg-zinc-900 border border-zinc-800 p-6 rounded-sm w-full max-w-md shadow-2xl"
+              >
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-emerald-500/10 rounded-sm">
+                    <Volume2 size={20} className="text-emerald-500" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-bold tracking-widest uppercase text-zinc-100">Save Preset</h2>
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-tighter mt-1">Capture current engine state</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[9px] text-zinc-500 uppercase tracking-widest ml-1">Preset Name</label>
+                    <input 
+                      autoFocus
+                      type="text" 
+                      value={newPresetName}
+                      onChange={(e) => setNewPresetName(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && saveCurrentPreset()}
+                      placeholder="Enter name..."
+                      className="w-full bg-black border border-zinc-800 px-4 py-3 text-xs text-zinc-200 focus:outline-none focus:border-emerald-500/50 transition-colors rounded-sm"
+                    />
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <button 
+                      onClick={() => setSaveModalOpen(false)}
+                      className="flex-1 px-4 py-3 border border-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors text-[10px] font-bold uppercase tracking-widest rounded-sm"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      onClick={saveCurrentPreset}
+                      disabled={!newPresetName.trim()}
+                      className="flex-1 px-4 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:hover:bg-emerald-600 text-white transition-colors text-[10px] font-bold uppercase tracking-widest rounded-sm shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+                    >
+                      Save Preset
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>

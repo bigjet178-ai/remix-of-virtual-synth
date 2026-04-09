@@ -58,7 +58,18 @@ export const PARAMETERS = {
   TS_DRIVE: 62,         // 0.0 to 1.0
   TS_TONE: 63,          // 0.0 to 1.0
   TS_LEVEL: 64,         // 0.0 to 1.0
-  TS_MIX: 65            // 0.0 to 1.0
+  TS_MIX: 65,            // 0.0 to 1.0
+  FX_SRC_OSC1: 68,      // 0: Off, 1: On
+  FX_SRC_OSC2: 69,      // 0: Off, 1: On
+  FX_SRC_WT: 70,        // 0: Off, 1: On
+  FX_ENV_FOLLOW: 71,    // 0: Off, 1: On
+  OSC_FM_AMT: 72,       // 0.0 to 1.0
+  OSC_SYNC_ENABLE: 73,  // 0: Off, 1: On
+  LFO1_MORPH: 74,       // 0.0 to 4.0 (Sine -> Tri -> Saw -> Sqr -> Rand)
+  LFO1_FADE: 75,        // 0.0 to 5.0 s
+  LFO2_MORPH: 76,       // 0.0 to 4.0
+  LFO2_FADE: 77,        // 0.0 to 5.0 s
+  CHAOS_AMT: 78         // 0.0 to 1.0
 };
 
 export const EVENTS = {
@@ -68,7 +79,7 @@ export const EVENTS = {
   STOP_RECORD: 4
 };
 
-export const MAX_PARAMETERS = 70;
+export const MAX_PARAMETERS = 100;
 
 /**
  * Lock-free Single-Producer Single-Consumer (SPSC) Ring Buffer

@@ -41,6 +41,13 @@ export class ZDFLadderFilter {
     this.k = resonance * 4.0;
   }
 
+  public reset(): void {
+    this.s1 = 0;
+    this.s2 = 0;
+    this.s3 = 0;
+    this.s4 = 0;
+  }
+
   public process(input: number): number {
     // Calculate the delay-free feedback loop algebraically
     const G2 = this.G * this.G;
