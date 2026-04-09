@@ -70,6 +70,7 @@ export const PARAMETERS = {
   LFO2_MORPH: 76,       // 0.0 to 4.0
   LFO2_FADE: 77,        // 0.0 to 5.0 s
   CHAOS_AMT: 78,        // 0.0 to 1.0
+  FX_TRAIL_MODE: 79,    // 0: Off (No trail), 1: On (Trail)
   SEQ_VEL_0: 80,
   SEQ_VEL_1: 81,
   SEQ_VEL_2: 82,
@@ -87,6 +88,51 @@ export const PARAMETERS = {
   SEQ_GATE_6: 94,
   SEQ_GATE_7: 95,
   SEQ_TRANSPOSE: 96,
+
+  // Modulation Matrix (6x6)
+  // Sources: LFO1, LFO2, Filter Env, Amp Env, Velocity, Chaos
+  // Targets: Pitch, Cutoff, WT Pos, FX Mix, Resonance, LFO Rate
+  MOD_L1_PITCH: 100,
+  MOD_L1_CUTOFF: 101,
+  MOD_L1_WT: 102,
+  MOD_L1_FX: 103,
+  MOD_L1_RES: 104,
+  MOD_L1_RATE: 105,
+
+  MOD_L2_PITCH: 106,
+  MOD_L2_CUTOFF: 107,
+  MOD_L2_WT: 108,
+  MOD_L2_FX: 109,
+  MOD_L2_RES: 110,
+  MOD_L2_RATE: 111,
+
+  MOD_FE_PITCH: 112,
+  MOD_FE_CUTOFF: 113,
+  MOD_FE_WT: 114,
+  MOD_FE_FX: 115,
+  MOD_FE_RES: 116,
+  MOD_FE_RATE: 117,
+
+  MOD_AE_PITCH: 118,
+  MOD_AE_CUTOFF: 119,
+  MOD_AE_WT: 120,
+  MOD_AE_FX: 121,
+  MOD_AE_RES: 122,
+  MOD_AE_RATE: 123,
+
+  MOD_VEL_PITCH: 124,
+  MOD_VEL_CUTOFF: 125,
+  MOD_VEL_WT: 126,
+  MOD_VEL_FX: 127,
+  MOD_VEL_RES: 128,
+  MOD_VEL_RATE: 129,
+
+  MOD_CH_PITCH: 130,
+  MOD_CH_CUTOFF: 131,
+  MOD_CH_WT: 132,
+  MOD_CH_FX: 133,
+  MOD_CH_RES: 134,
+  MOD_CH_RATE: 135,
 };
 
 export const EVENTS = {
@@ -96,7 +142,7 @@ export const EVENTS = {
   STOP_RECORD: 4
 };
 
-export const MAX_PARAMETERS = 100;
+export const MAX_PARAMETERS = 160;
 
 /**
  * Lock-free Single-Producer Single-Consumer (SPSC) Ring Buffer

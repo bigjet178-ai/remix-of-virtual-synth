@@ -22,6 +22,11 @@ class CombFilter {
     this.idx = (this.idx + 1) % this.buffer.length;
     return output;
   }
+
+  public clear(): void {
+    this.buffer.fill(0);
+    this.filterStore = 0;
+  }
 }
 
 class AllpassFilter {
@@ -38,6 +43,10 @@ class AllpassFilter {
     this.buffer[this.idx] = input + (delayed * 0.5);
     this.idx = (this.idx + 1) % this.buffer.length;
     return output;
+  }
+
+  public clear(): void {
+    this.buffer.fill(0);
   }
 }
 
@@ -69,6 +78,13 @@ export class Reverb {
       this.allpassesL.push(new AllpassFilter(allpassSizes[i]));
       this.allpassesR.push(new AllpassFilter(allpassSizes[i] + stereoSpread));
     }
+  }
+
+  public clear(): void {
+    for (const c of this.combsL) c.clear();
+    for (const c of this.combsR) c.clear();
+    for (const a of this.allpassesL) a.clear();
+    for (const a of this.allpassesR) a.clear();
   }
 
   public process(inL: number, inR: number): void {

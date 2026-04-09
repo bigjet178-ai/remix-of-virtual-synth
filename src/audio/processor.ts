@@ -76,8 +76,8 @@ class Voice {
     this.filterAdsr.releaseNote();
   }
 
-  process(p: Float32Array, lfo1Val: number, lfo2Val: number): { dry: number, fx: number } {
-    if (!this.isActive) return { dry: 0, fx: 0 };
+  process(p: Float32Array, lfo1Val: number, lfo2Val: number): { dry: number, fx: number, modFX: number, modRate: number } {
+    if (!this.isActive) return { dry: 0, fx: 0, modFX: 0, modRate: 0 };
 
     const envVal = this.adsr.process();
     this.currentEnv = envVal;
@@ -85,7 +85,7 @@ class Voice {
 
     if (this.adsr.isIdle && envVal < 0.0001) {
       this.isActive = false;
-      return { dry: 0, fx: 0 };
+      return { dry: 0, fx: 0, modFX: 0, modRate: 0 };
     }
 
     const osc1Wave = Math.round(p[PARAMETERS.OSC1_WAVE] || 0);
@@ -108,9 +108,29 @@ class Voice {
     const vLfo1 = lfo1Val * lfo1Fade;
     const vLfo2 = lfo2Val * lfo2Fade;
 
-    // LFO2 can modulate Pitch
+    // Modulation Matrix Logic (6x6)
+    // Sources: vLfo1, vLfo2, filterEnvVal, envVal, this.velocity, this.chaosOffset
+    const sources = [vLfo1, vLfo2, filterEnvVal, envVal, this.velocity, this.chaosOffset];
+    
+    let modPitch = 0;
+    let modCutoff = 0;
+    let modWT = 0;
+    let modFX = 0;
+    let modRes = 0;
+    let modRate = 0;
+
+    for (let s = 0; s < 6; s++) {
+      modPitch += sources[s] * p[100 + s * 6 + 0];
+      modCutoff += sources[s] * p[100 + s * 6 + 1];
+      modWT += sources[s] * p[100 + s * 6 + 2];
+      modFX += sources[s] * p[100 + s * 6 + 3];
+      modRes += sources[s] * p[100 + s * 6 + 4];
+      modRate += sources[s] * p[100 + s * 6 + 5];
+    }
+
+    // LFO2 can modulate Pitch (legacy)
     const lfo2Amt = p[PARAMETERS.LFO2_AMT] || 0;
-    const pitchMod = Math.pow(2, (vLfo1 * 0.1 + vLfo2 * lfo2Amt) / 12);
+    const pitchMod = Math.pow(2, (vLfo1 * 0.1 + vLfo2 * lfo2Amt + modPitch * 12) / 12);
 
     // FM and Sync
     const fmAmt = p[PARAMETERS.OSC_FM_AMT] || 0;
@@ -183,7 +203,7 @@ class Voice {
     const wtDetune = p[PARAMETERS.WT_DETUNE] || 0;
     
     // Scrub index with LFO1
-    const scrub = Math.max(0, Math.min(1, wtPos + vLfo1 * wtLfoAmt));
+    const scrub = Math.max(0, Math.min(1, wtPos + vLfo1 * wtLfoAmt + modWT));
     const wtFreq = chaosFreq * Math.pow(2, wtDetune / 12) * pitchMod;
     this.wtOsc.setFrequency(wtFreq);
     const wtSignal = this.wtOsc.process(scrub) * wtMix;
@@ -212,19 +232,21 @@ class Voice {
 
     // Filter Modulation
     const targetCutoff = p[PARAMETERS.FILTER_CUTOFF];
-    const filterRes = p[PARAMETERS.FILTER_RES];
+    const filterRes = Math.max(0, Math.min(0.99, p[PARAMETERS.FILTER_RES] + modRes));
     const envAmt = p[PARAMETERS.FILTER_ENV_DEPTH] || 0;
     const lfo1Amt = p[PARAMETERS.FILTER_LFO_AMT];
     
-    let modCutoff = targetCutoff + (filterEnvVal * envAmt) + (vLfo1 * lfo1Amt);
-    modCutoff = Math.max(20, Math.min(20000, modCutoff));
+    let finalCutoff = targetCutoff + (filterEnvVal * envAmt) + (vLfo1 * lfo1Amt) + (modCutoff * 10000);
+    finalCutoff = Math.max(20, Math.min(20000, finalCutoff));
     
-    this.filter.setParameters(modCutoff, filterRes);
-    this.filterFX.setParameters(modCutoff, filterRes);
+    this.filter.setParameters(finalCutoff, filterRes);
+    this.filterFX.setParameters(finalCutoff, filterRes);
 
     return {
       dry: this.filter.process(sigDry),
-      fx: this.filterFX.process(sigFX)
+      fx: this.filterFX.process(sigFX),
+      modFX,
+      modRate
     };
   }
 }
@@ -260,6 +282,7 @@ class SynthProcessor extends AudioWorkletProcessor {
   private seqFrameCounter: number = 0;
   private seqNotes: number[] = new Array(8).fill(-1); // Track notes triggered by sequencer
   private lastSentStep: number = -1;
+  private lastModRate: number = 0;
 
   constructor() {
     super();
@@ -409,41 +432,52 @@ class SynthProcessor extends AudioWorkletProcessor {
       }
 
       // Global Modulators
+      const modRateFactor = Math.pow(2, this.lastModRate);
       if (lfoSyncEnabled) {
         // Sync LFO rate to tempo (e.g., 1 LFO cycle per beat)
-        this.lfo1.rate = (tempo / 60);
+        this.lfo1.rate = (tempo / 60) * modRateFactor;
       } else {
-        this.lfo1.rate = p[PARAMETERS.LFO_RATE];
+        this.lfo1.rate = p[PARAMETERS.LFO_RATE] * modRateFactor;
       }
       this.lfo1.morph = p[PARAMETERS.LFO1_MORPH] || 0;
-      this.lfo2.rate = p[PARAMETERS.LFO2_RATE];
+      this.lfo2.rate = p[PARAMETERS.LFO2_RATE] * modRateFactor;
       this.lfo2.morph = p[PARAMETERS.LFO2_MORPH] || 0;
 
       const lfo1Val = this.lfo1.process();
       const lfo2Val = this.lfo2.process();
 
-      // Process all voices
       let mixedDry = 0;
       let mixedFX = 0;
+      let totalModFX = 0;
+      let totalModRate = 0;
       let anyVoiceActive = false;
       let maxEnv = 0;
       for (const v of this.voices) {
-        const out = v.process(p, lfo1Val, lfo2Val);
+        const out = v.process(p, lfo1Val, lfo2Val) as any;
         mixedDry += out.dry;
         mixedFX += out.fx;
+        totalModFX += out.modFX || 0;
+        totalModRate += out.modRate || 0;
         if (v.isActive) {
           anyVoiceActive = true;
           maxEnv = Math.max(maxEnv, v.currentEnv);
         }
       }
       p[67] = anyVoiceActive ? 1 : 0;
+      this.lastModRate = totalModRate / this.maxVoices;
 
       // Effects
       this.delay.time += (p[PARAMETERS.DELAY_TIME] - this.delay.time) * 0.005;
       this.delay.feedback += (p[PARAMETERS.DELAY_FEEDBACK] - this.delay.feedback) * 0.005;
       
+      const trailMode = p[PARAMETERS.FX_TRAIL_MODE] > 0.5;
+      if (!trailMode && !anyVoiceActive) {
+        this.delay.clear();
+        this.reverb.clear();
+      }
+      
       let delayMix = p[PARAMETERS.DELAY_MIX];
-      let reverbMix = p[PARAMETERS.REVERB_MIX];
+      let reverbMix = p[PARAMETERS.REVERB_MIX] + (totalModFX / this.maxVoices);
       let tsMix = p[PARAMETERS.TS_MIX] || 0;
 
       // Envelope following for FX

@@ -24,6 +24,11 @@ export class PingPongDelay {
     this.bufferR = new Float32Array(sampleRate * 2);
   }
 
+  public clear(): void {
+    this.bufferL.fill(0);
+    this.bufferR.fill(0);
+  }
+
   public process(input: number): void {
     const delaySamples = Math.floor(this.time * this.sampleRate);
     let readIdx = this.writeIdx - delaySamples;
